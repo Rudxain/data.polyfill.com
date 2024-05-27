@@ -4,7 +4,8 @@ import cors from 'cors';
 import useragent from 'express-useragent';
 import cookieSession from 'cookie-session';
 
-import routePackages from './routes/packages.js'
+import routePackages from './routes/packages.js';
+import routeTools from './routes/tools.js';
 
 import dotenv from 'dotenv';
 if (process.env.NODE_ENV !== 'production') {
@@ -44,6 +45,7 @@ app.use(
 
 /// Routes
 app.use('/packages', routePackages);
+app.use('/tools', routeTools);
 
 // 404
 app.get('*', (req, res) => {
