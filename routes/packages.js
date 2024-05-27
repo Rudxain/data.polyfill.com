@@ -3,6 +3,16 @@ var router = express.Router();
 
 import algoliasearch from 'algoliasearch';
 
+import dotenv from 'dotenv';
+if (process.env.NODE_ENV !== 'production') {
+    dotenv.config({ path: '.env.development' });
+} else {
+    dotenv.config({ path: '.env' });
+}
+
+console.log(process.env.ALGOLIA_APP_ID);
+console.log(process.env.ALGOLIA_API_KEY);
+
 const client = algoliasearch(process.env.ALGOLIA_APP_ID, process.env.ALGOLIA_API_KEY);
 
 router.get('/', async (req, res) => {
@@ -15,8 +25,9 @@ router.get('/', async (req, res) => {
 
     try {
         const index = client.initIndex('npm-search');
-        const { hits } = await index.search(searchText);
-        res.json({ hits });
+        const data = await index.search(searchText);
+        console.log(data);
+        res.json(data);
       } catch (error) {
         res.json({ error: error.message });
       }

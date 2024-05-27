@@ -3,11 +3,10 @@ import bodyParser from 'body-parser';
 import cors from 'cors';
 import useragent from 'express-useragent';
 import cookieSession from 'cookie-session';
-import dotenv from 'dotenv';
 
 import routePackages from './routes/packages.js'
 
-
+import dotenv from 'dotenv';
 if (process.env.NODE_ENV !== 'production') {
     dotenv.config({ path: '.env.development' });
 } else {
