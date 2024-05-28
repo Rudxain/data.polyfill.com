@@ -17,6 +17,8 @@ router.get('/', async (req, res) => {
     const searchPage = req.query.page || 0;
     const facetFilters = req.query.filter || '';
 
+    console.log(facetFilters);
+
     if (searchText === undefined || searchText === '') {
         res.status(400).send("Bad Request!");
         return;
