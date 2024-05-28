@@ -1,7 +1,6 @@
 import express from 'express';
 var router = express.Router();
 import algoliasearch from 'algoliasearch';
-
 import searchdata from '../fake/algoliasearch.json' assert { type: 'json' };
 
 import dotenv from 'dotenv';
