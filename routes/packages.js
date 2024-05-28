@@ -64,7 +64,7 @@ router.get('/', async (req, res) => {
                 searchOptions = {
                     hitsPerPage: 10,
                     page: searchPage,
-                    attributesToRetrieve: ["deprecated","description","githubRepo","homepage","keywords","license","name","owner","version","popular","moduleTypes","styleTypes","jsDelivrHits"]
+                    attributesToRetrieve: ["deprecated","description","githubRepo","homepage","keywords","license","name","owner","version","popular","moduleTypes","styleTypes","jsDelivrHits", "downloadsLast30Days"]
                 };
             }
 
@@ -78,14 +78,14 @@ router.get('/', async (req, res) => {
                         avatar: item.owner.avatar,
                         version: item.version,
                         description: item.description,
-                        popular: true,
+                        popular: item.popular,
                         moduleTypes: item.moduleTypes,
                         styleTypes: item.styleTypes,
                         license: item.license,
                         keywords: item.keywords,
                         github_url: item.owner.link,
                         homepage: item.homepage,
-                        downloads: item.downloadsLast30Days,
+                        downloads: item.jsDelivrHits,
                     }
                 });
                 res.json({result: true, data: data, page: page, totalPages: nbPages});
