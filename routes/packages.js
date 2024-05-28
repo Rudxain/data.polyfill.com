@@ -15,6 +15,7 @@ const client = algoliasearch(process.env.ALGOLIA_APP_ID, process.env.ALGOLIA_API
 router.get('/', async (req, res) => {
     const searchText = req.query.search;
     const searchPage = req.query.page || 0;
+    const facetFilters = req.query.filter || '';
 
     if (searchText === undefined || searchText === '') {
         res.status(400).send("Bad Request!");
@@ -49,7 +50,23 @@ router.get('/', async (req, res) => {
     } else {
         try {
             const index = client.initIndex('npm-search');
-            const {hits, nbPages, page} = await index.search(searchText, {hitsPerPage: 10, page: searchPage});
+            let searchOptions = {};
+            if (facetFilters !== '') {
+                searchOptions = {
+                    hitsPerPage: 10,
+                    page: searchPage,
+                    attributesToRetrieve: ["deprecated","description","githubRepo","homepage","keywords","license","name","owner","version","popular","moduleTypes","styleTypes","jsDelivrHits"],
+                    facetFilters: facetFilters
+                };
+            } else {
+                searchOptions = {
+                    hitsPerPage: 10,
+                    page: searchPage,
+                    attributesToRetrieve: ["deprecated","description","githubRepo","homepage","keywords","license","name","owner","version","popular","moduleTypes","styleTypes","jsDelivrHits"]
+                };
+            }
+
+            const {hits, nbPages, page} = await index.search(searchText, searchOptions);
             if (hits.length > 0) {
                 const data =  hits.map(item=>{
                     // console.log(item);

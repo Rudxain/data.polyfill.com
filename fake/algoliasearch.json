@@ -1885,7 +1885,7 @@
         "unknown"
       ],
       "styleTypes": [
-        "none"
+        "css"
       ],
       "changelogFilename": "https://raw.githubusercontent.com/facebook/react/a87edf62d7d69705ddbcec9a24f0780b3db7535f/CHANGELOG.md",
       "lastCrawl": "2024-05-24T23:47:40.478Z",
