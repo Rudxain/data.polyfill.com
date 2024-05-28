@@ -38,7 +38,8 @@ router.get('/', async (req, res) => {
                     license: item.license,
                     keywords: item.keywords,
                     github_url: item.owner.link,
-                    homepage: item.homepage
+                    homepage: item.homepage,
+                    downloads: item.downloadsLast30Days,
                 }
             });
             res.json({result: true, data: data, page: page, totalPages: nbPages});
@@ -64,7 +65,8 @@ router.get('/', async (req, res) => {
                         license: item.license,
                         keywords: item.keywords,
                         github_url: item.owner.link,
-                        homepage: item.homepage
+                        homepage: item.homepage,
+                        downloads: item.downloadsLast30Days,
                     }
                 });
                 res.json({result: true, data: data, page: page, totalPages: nbPages});
@@ -86,6 +88,5 @@ router.get('/:package', async (req, res) => {
 
     res.send(pkgName);
 })
-
 
 export default router;
