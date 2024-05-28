@@ -55,7 +55,7 @@ router.get('/', async (req, res) => {
                     return {
                         name: item.name,
                         author: item.owner.name,
-                        avator: item.owner.avator,
+                        avatar: item.owner.avatar,
                         version: item.version,
                         description: item.description,
                         popular: true,
