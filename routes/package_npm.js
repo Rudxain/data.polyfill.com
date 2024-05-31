@@ -79,7 +79,7 @@ router.get('/:package/overview', async (req, res) => {
                 return;
             }
         } catch (error) {
-            res.send({ status: 400, error: error.message });
+            res.send({ status: 400, result:false, error: error.message });
             return;
         }
     }
