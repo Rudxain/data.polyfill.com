@@ -42,7 +42,7 @@ router.get('/:package/overview', async (req, res) => {
                 attributesToRetrieve: ["deprecated", "description", "githubRepo", "homepage", "keywords", "license", "name", "owner", "version", "popular", "moduleTypes", "styleTypes", "jsDelivrHits", "downloadsLast30Days"]
             };
 
-            const { hits } = await index.search(searchText, searchOptions);
+            const { hits } = await index.search(project, searchOptions);
             res.send(hits);
             return;
             if (hits.length > 0) {
