@@ -15,6 +15,9 @@ if (process.env.NODE_ENV !== 'production') {
     dotenv.config({ path: '.env' });
 }
 
+//database
+//import './db/redis.js';
+
 /// express
 var app = express();
 app.set('port', process.env.PORT || 8090);
