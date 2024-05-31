@@ -42,7 +42,7 @@ router.get('/:package/overview', async (req, res) => {
             };
 
             const { hits } = await index.search(searchText, searchOptions);
-            res.json(hits);
+            res.send(hits);
             return;
             if (hits.length > 0) {
                 const item = hits[0];
@@ -67,7 +67,7 @@ router.get('/:package/overview', async (req, res) => {
                 res.json({ result: false, data: [] })
             }
         } catch (error) {
-            res.json({ error: error.message });
+            res.send({ error: error.message });
         }
     }
 
