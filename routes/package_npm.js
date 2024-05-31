@@ -43,8 +43,6 @@ router.get('/:package/overview', async (req, res) => {
             };
 
             const { hits } = await index.search(project, searchOptions);
-            res.send(hits);
-            return;
             if (hits.length > 0) {
                 const item = hits[0];
                 response = {
@@ -63,13 +61,15 @@ router.get('/:package/overview', async (req, res) => {
                     homepage: item.homepage,
                     downloads: item.jsDelivrHits,
                 }
-                res.json({ result: true, data: data, page: page, totalPages: nbPages });
+                
             } else {
-                res.json({ result: false, data: [] })
+                res.json({status: 404, result: false, data: [] })
             }
         } catch (error) {
-            res.send({ error: error.message });
+            res.send({ status: 400, error: error.message });
         }
+
+        res.json({ status: 200, result: true, data: response });
     }
 
 
