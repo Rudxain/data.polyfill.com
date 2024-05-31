@@ -29,6 +29,7 @@ router.get('/:package/overview', async (req, res) => {
 
     // algolia search
     if (process.env.NODE_ENV == 'development') {
+        console.log("development");
         const { hits } = searchdata;
         res.json(hits);
     } else {
@@ -77,10 +78,6 @@ router.get('/:package/overview', async (req, res) => {
 
 
     // get package.json from cdn
-
-
-    res.send({ status: 200 });
-    return;
 })
 
 export default router;
