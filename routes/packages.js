@@ -19,11 +19,6 @@ router.get('/', async (req, res) => {
 
     console.log(facetFilters);
 
-    if (searchText === undefined || searchText === '') {
-        res.status(400).send("Bad Request!");
-        return;
-    }
-
     if (process.env.NODE_ENV === 'development') {
         const { hits, nbPages, page } = searchdata;
         if (hits.length > 0) {
@@ -47,7 +42,7 @@ router.get('/', async (req, res) => {
             });
             res.json({result: true, data: data, page: page, totalPages: nbPages});
         } else {
-            res.status(404).json({result: false, data: []})
+            res.json({result: false, data: []})
         }
     } else {
         try {
@@ -90,22 +85,12 @@ router.get('/', async (req, res) => {
                 });
                 res.json({result: true, data: data, page: page, totalPages: nbPages});
             } else {
-                res.status(404).json({result: false, data: []})
+                res.json({result: false, data: []})
             }
         } catch (error) {
             res.json({ error: error.message });
         }
     }
-})
-
-router.get('/:package', async (req, res) => {
-    const pkgName = req.params.package;
-    if (pkgName === undefined || pkgName === '') {
-        res.status(400).send("Bad Request!");
-        return;
-    }
-
-    res.send(pkgName);
 })
 
 export default router;
