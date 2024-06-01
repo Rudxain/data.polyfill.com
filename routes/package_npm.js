@@ -95,6 +95,7 @@ router.get('/:package/overview', async (req, res) => {
     // get package.json from cdn
 })
 
+/// get entrypoints
 router.get('/:package/:version/entrypoints', async (req, res) => {
     const pkg = req.params.package;
     const version = req.params.version;
@@ -107,6 +108,27 @@ router.get('/:package/:version/entrypoints', async (req, res) => {
     try {
         const {data} = await request.get(url);
         res.send({success: true, data: data});
+    } catch (error) {
+        res.send({success: false});
+    }
+})
+
+/// get versions
+router.get('/:package/versions', async (req, res)=>{
+    
+    const pkg = req.params.package;
+
+    /// get redis
+
+
+    /// else
+    const url = `https://data.jsdelivr.com/v1/packages/npm/${pkg}`;
+    try {
+        const {data} = await request.get(url);
+        const versions = data.versions.map(item=>item.version);
+        res.send({success: true, versions: versions});
+        // save to redis
+
     } catch (error) {
         res.send({success: false});
     }

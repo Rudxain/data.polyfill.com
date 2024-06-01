@@ -7,6 +7,7 @@ import cookieSession from 'cookie-session';
 import routePackages from './routes/packages.js';
 import routePackageNpm from './routes/package_npm.js';
 import routeTools from './routes/tools.js';
+import routeReadme from './routes/readme.js';
 
 import dotenv from 'dotenv';
 if (process.env.NODE_ENV !== 'production') {
@@ -50,6 +51,7 @@ app.use(
 /// Routes
 app.use('/packages', routePackages);
 app.use('/package/npm', routePackageNpm);
+app.use('/readme', routeReadme);
 app.use('/tools', routeTools);
 
 // 404
