@@ -2,6 +2,8 @@ import express from 'express';
 var router = express.Router();
 import algoliasearch from 'algoliasearch';
 
+import request from '../utils/request.js';
+
 //import { GetContentFromRedis, SaveContentToRedis } from '../db/redis.js';
 
 /// temp json
@@ -75,22 +77,39 @@ router.get('/:package/overview', async (req, res) => {
                 }
                 
             } else {
-                res.json({status: 404, result: false, data: [] })
+                res.json({status: 404, success: false, data: [] })
                 return;
             }
         } catch (error) {
-            res.send({ status: 400, result:false, error: error.message });
+            res.send({ status: 400, success:false, error: error.message });
             return;
         }
     }
 
-    res.json({ status: 200, result: true, data: response });
+    res.json({ status: 200, success: true, data: response });
 
 
     // name, owner, popular, moduleTypes, styleTypes, description, version, license, homepage, github_url, npm_url, download_url,
 
 
     // get package.json from cdn
+})
+
+router.get('/:package/:version/entrypoints', async (req, res) => {
+    const pkg = req.params.package;
+    const version = req.params.version;
+    /// get redis
+
+    /// fetch
+
+    const url = `https://data.jsdelivr.com/v1/packages/npm/${pkg}@${version}/entrypoints`;
+
+    try {
+        const {data} = await request.get(url);
+        res.send({success: true, data: data});
+    } catch (error) {
+        res.send({success: false});
+    }
 })
 
 export default router;
