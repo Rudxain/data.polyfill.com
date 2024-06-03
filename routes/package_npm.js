@@ -22,9 +22,9 @@ router.get('/', (req, res) => {
     res.send({ status: 400, message: "Bad Request!" });
 })
 
-router.get('/:package/overview', async (req, res) => {
-    const project = req.params.package;
-
+router.get('/*/overview', async (req, res) => {
+    const project = req.params[0];
+    console.log(project);
     let response = {};
 
     console.log('fetching npm package overview for', project);
@@ -96,9 +96,16 @@ router.get('/:package/overview', async (req, res) => {
 })
 
 /// get entrypoints
-router.get('/:package/:version/entrypoints', async (req, res) => {
-    const pkg = req.params.package;
-    const version = req.params.version;
+router.get('/*/entrypoints', async (req, res) => {
+    const params = req.params[0];
+    const paramsplit = params.split("@");
+    if (paramsplit.length < 2) {
+        res.send({success: false, status:400});
+    }
+    var pkg, version;
+    version = paramsplit[paramsplit.length-1];
+    pkg = params.replace(`@${version}`, "");
+
     /// get redis
 
     /// fetch
@@ -107,6 +114,7 @@ router.get('/:package/:version/entrypoints', async (req, res) => {
 
     try {
         const {data} = await request.get(url);
+        console.log(data);
         res.send({success: true, data: data});
     } catch (error) {
         res.send({success: false});
@@ -114,9 +122,9 @@ router.get('/:package/:version/entrypoints', async (req, res) => {
 })
 
 /// get versions
-router.get('/:package/versions', async (req, res)=>{
+router.get('/*/versions', async (req, res)=>{
     
-    const pkg = req.params.package;
+    const pkg = req.params[0];
 
     /// get redis
 
@@ -136,12 +144,17 @@ router.get('/:package/versions', async (req, res)=>{
 })
 
 /// get file list of a package/version
-router.get('/:package/:version', async (req, res)=>{
+router.get('/*/files', async (req, res)=>{
     
-    const pkg = req.params.package;
-    const version = req.params.version;
+    const params = req.params[0];
+    const paramsplit = params.split("@");
+    if (paramsplit.length < 2) {
+        res.send({success: false, status:400});
+    }
+    var pkg, version;
+    version = paramsplit[paramsplit.length-1];
+    pkg = params.replace(`@${version}`, "");
     /// get redis
-
 
     /// else
     const url = `https://data.jsdelivr.com/v1/packages/npm/${pkg}@${version}`;

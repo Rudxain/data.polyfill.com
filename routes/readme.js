@@ -11,11 +11,16 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 /// get npm package readme
-router.get('/npm/:package/:version', async (req, res) => {
-
-    const pkg = req.params.package;
-    const version = req.params.version;
-
+router.get('/npm/*', async (req, res) => {
+    
+    const params = req.params[0];
+    const paramsplit = params.split("@");
+    if (paramsplit.length < 2) {
+        res.send({success: false, status:400});
+    }
+    var pkg, version;
+    version = paramsplit[paramsplit.length-1];
+    pkg = params.replace(`@${version}`, "");
     /// get redis
 
     if (process.env.NODE_ENV == 'development') {
