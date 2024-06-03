@@ -130,6 +130,28 @@ router.get('/:package/versions', async (req, res)=>{
         // save to redis
 
     } catch (error) {
+        console.log(error);
+        res.send({success: false});
+    }
+})
+
+/// get file list of a package/version
+router.get('/:package/:version', async (req, res)=>{
+    
+    const pkg = req.params.package;
+    const version = req.params.version;
+    /// get redis
+
+
+    /// else
+    const url = `https://data.jsdelivr.com/v1/packages/npm/${pkg}@${version}`;
+    try {
+        const {data} = await request.get(url);
+        res.send({success: true, data: data});
+        // save to redis
+
+    } catch (error) {
+        console.log(error);
         res.send({success: false});
     }
 })
