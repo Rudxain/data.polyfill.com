@@ -114,7 +114,6 @@ router.get('/*/entrypoints', async (req, res) => {
 
     try {
         const {data} = await request.get(url);
-        console.log(data);
         res.send({success: true, data: data});
     } catch (error) {
         res.send({success: false});
@@ -127,7 +126,6 @@ router.get('/*/versions', async (req, res)=>{
     const pkg = req.params[0];
 
     /// get redis
-
 
     /// else
     const url = `https://data.jsdelivr.com/v1/packages/npm/${pkg}`;
