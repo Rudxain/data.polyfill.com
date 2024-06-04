@@ -6,6 +6,7 @@ import cookieSession from 'cookie-session';
 
 import routePackages from './routes/packages.js';
 import routePackageNpm from './routes/package_npm.js';
+import routeStats from './routes/stats.js';
 import routeTools from './routes/tools.js';
 import routeReadme from './routes/readme.js';
 
@@ -52,6 +53,7 @@ app.use(
 app.use('/packages', routePackages);
 app.use('/package/npm', routePackageNpm);
 app.use('/readme', routeReadme);
+app.use('/stats', routeStats);
 app.use('/tools', routeTools);
 
 // 404
