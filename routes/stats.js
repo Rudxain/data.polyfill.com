@@ -20,7 +20,28 @@ router.get('/periods', async (req, res) => {
         console.log(error);
         res.send({ success: false });
     }
+})
 
+router.get('/npm/:package', async (req, res) => {
+
+    const pkg = req.params.package;
+    const period = req.query.period || 'month';
+
+    console.log(pkg, period);
+
+    // load from redis
+
+    // fetch
+    const url = `https://data.jsdelivr.com/v1/stats/packages/npm/${pkg}?period=${period}`;
+    try {
+        const { data } = await request.get(url);
+        res.send({ success: true, data: data });
+        // save to redis
+
+    } catch (error) {
+        console.log(error);
+        res.send({ success: false });
+    }
 })
 
 
