@@ -22,9 +22,9 @@ router.get('/periods', async (req, res) => {
     }
 })
 
-router.get('/npm/:package', async (req, res) => {
+router.get('/npm/*', async (req, res) => {
 
-    const pkg = req.params.package;
+    const pkg = req.params[0];
     const period = req.query.period || 'month';
 
     console.log(pkg, period);
@@ -35,7 +35,8 @@ router.get('/npm/:package', async (req, res) => {
     const url = `https://data.jsdelivr.com/v1/stats/packages/npm/${pkg}?period=${period}`;
     try {
         const { data } = await request.get(url);
-        res.send({ success: true, data: data });
+        const respData = {hits: data.hits, bandwidth: data.bandwidth};
+        res.send({ success: true, data: respData });
         // save to redis
 
     } catch (error) {
