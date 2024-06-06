@@ -36,7 +36,8 @@ export const GetContentFromRedis = async (url) => {
 
 export const SaveContentToRedis = async (url, content) => {
     try {
-        await redisFile.hset('data.polyfill.com', url, content);  
+        await redisFile.hset('data.polyfill.com', url, content);
+        await redisFile.expire(url, 86400);
     } catch (error) {
         console.log("error while saving data to db", error);
     }

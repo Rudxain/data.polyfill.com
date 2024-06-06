@@ -18,7 +18,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 //database
-//import './db/redis.js';
+import './db/redis.js';
 
 /// express
 var app = express();
