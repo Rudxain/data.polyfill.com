@@ -65,7 +65,7 @@ router.get('/packages/npm/:package/versions', async (req, res) => {
     try {
         const { data } = await request.get(url);
         const respData = data.map(item=>{
-            return {version: item.version, hits: item.hits.total, bandwidth: item.bandwidth.total};
+            return {version: item.version, hits: item.hits, bandwidth: item.bandwidth};
         });
         res.send({ success: true, data: respData });
         // save to redis
