@@ -3,10 +3,16 @@ var router = express.Router();
 import request from '../utils/request.js';
 
 import { GetContentFromRedis, SaveContentToRedis } from '../db/redis.js';
+import * as CONST from '../utils/const.js';
 
 router.get('/periods', async (req, res) => {
-    // get from redis
-    
+    /// if already exist in cache, send it
+    const cacheData = await GetContentFromRedis(req.originalUrl);
+    if (cacheData != null) {
+        console.log('loading from redis', req.originalUrl);
+        res.send(cacheData);
+        return;
+    }
 
     // fetch
     const url = `https://data.jsdelivr.com/v1/stats/periods`;
@@ -16,7 +22,9 @@ router.get('/periods', async (req, res) => {
         const periodList = data.map(item => {
             return {period: item.period, periodType: item.periodType};
         });
-        res.send({ success: true, data: periodList });
+        const respData = { success: true, data: periodList };
+        await SaveContentToRedis(req.originalUrl, JSON.stringify(respData), CONST.EXPIRE_MONTH)
+        res.send(respData);
         // save to redis
 
     } catch (error) {
@@ -27,19 +35,28 @@ router.get('/periods', async (req, res) => {
 
 router.get('/npm/*', async (req, res) => {
 
+    /// if already exist in cache, send it
+    const cacheData = await GetContentFromRedis(req.originalUrl);
+    if (cacheData != null) {
+        console.log('loading from redis', req.originalUrl);
+        res.send(cacheData);
+        return;
+    }
+
+    console.log('fetching overall stats data', req.originalUrl);
+
     const pkg = req.params[0];
     const period = req.query.period || 'month';
 
     console.log(pkg, period);
 
-    // load from redis
-
     // fetch
     const url = `https://data.jsdelivr.com/v1/stats/packages/npm/${pkg}?period=${period}`;
     try {
         const { data } = await request.get(url);
-        const respData = {hits: data.hits, bandwidth: data.bandwidth};
-        res.send({ success: true, data: respData });
+        const respData = {success: true, hits: data.hits, bandwidth: data.bandwidth};
+        await SaveContentToRedis(req.originalUrl, JSON.stringify(respData), CONST.EXPIRE_DAY);
+        res.send(respData);
         // save to redis
 
     } catch (error) {
@@ -50,9 +67,13 @@ router.get('/npm/*', async (req, res) => {
 
 router.get('/packages/npm/:package/versions', async (req, res) => {
     
-    // load from redis
-    const reqUrl = req.url;
-    console.log(reqUrl);
+    /// if already exist in cache, send it
+    const cacheData = await GetContentFromRedis(req.originalUrl);
+    if (cacheData != null) {
+        console.log('loading from redis', req.originalUrl);
+        res.send(cacheData);
+        return;
+    }
 
     const pkg = req.params.package;
     var period = req.query.period;
@@ -64,11 +85,12 @@ router.get('/packages/npm/:package/versions', async (req, res) => {
 
     try {
         const { data } = await request.get(url);
-        const respData = data.map(item=>{
+        const data1 = data.map(item=>{
             return {version: item.version, hits: item.hits, bandwidth: item.bandwidth};
         });
-        res.send({ success: true, data: respData });
-        // save to redis
+        const respData = { success: true, data: data1 }
+        await SaveContentToRedis(req.originalUrl, JSON.stringify(respData), CONST.EXPIRE_MONTH);
+        res.send(respData);
 
     } catch (error) {
         console.log(error);
@@ -77,10 +99,14 @@ router.get('/packages/npm/:package/versions', async (req, res) => {
 })
 
 router.get('/packages/npm/*/files', async (req, res) => {
-    
-    // load from redis
-    const reqUrl = req.url;
-    console.log(reqUrl);
+
+    /// if already exist in cache, send it
+    const cacheData = await GetContentFromRedis(req.originalUrl);
+    if (cacheData != null) {
+        console.log('loading from redis', req.originalUrl);
+        res.send(cacheData);
+        return;
+    }
 
     const params = req.params[0];
     const paramsplit = params.split("@");
@@ -99,10 +125,12 @@ router.get('/packages/npm/*/files', async (req, res) => {
 
     try {
         const { data } = await request.get(url);
-        const respData = data.map(item=>{
+        const data1 = data.map(item=>{
             return {name: item.name,  hits: item.hits.total, bandwidth: item.bandwidth.total};
         });
-        res.send({ success: true, data: respData });
+        const respData = { success: true, data: data1 }
+        await SaveContentToRedis(req.originalUrl, JSON.stringify(respData), CONST.EXPIRE_MONTH);
+        res.send(respData);
         // save to redis
 
     } catch (error) {

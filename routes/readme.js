@@ -2,8 +2,10 @@ import express from 'express';
 var router = express.Router();
 import request from '../utils/request.js';
 import fs from 'fs';
+import * as CONST from '../utils/const.js';
 
 import dotenv from 'dotenv';
+import { GetContentFromRedis, SaveContentToRedis } from '../db/redis.js';
 if (process.env.NODE_ENV !== 'production') {
     dotenv.config({ path: '.env.development' });
 } else {
@@ -12,14 +14,22 @@ if (process.env.NODE_ENV !== 'production') {
 
 /// get npm package readme
 router.get('/npm/*', async (req, res) => {
-    
+
+    /// if already exist in cache, send it
+    const cacheData = await GetContentFromRedis(req.originalUrl);
+    if (cacheData != null) {
+        console.log('loading from redis', req.originalUrl);
+        res.send(cacheData);
+        return;
+    }
+
     const params = req.params[0];
     const paramsplit = params.split("@");
     if (paramsplit.length < 2) {
-        res.send({success: false, status:400});
+        res.send({ success: false, status: 400 });
     }
     var pkg, version;
-    version = paramsplit[paramsplit.length-1];
+    version = paramsplit[paramsplit.length - 1];
     pkg = params.replace(`@${version}`, "");
     /// get redis
 
@@ -36,17 +46,14 @@ router.get('/npm/*', async (req, res) => {
         const url = `https://www.jsdelivr.com/readme/npm/${pkg}/${version}`;
         try {
             const { data } = await request.get(url);
-            res.send({ success: true, data: data });
-            // save to redis
-
+            const respData = { success: true, data: data };
+            await SaveContentToRedis(req.originalUrl, JSON.stringify(respData), CONST.EXPIRE_YEAR);
+            res.send(respData);
         } catch (error) {
             console.log(error);
             res.send({ success: false });
         }
     }
-
-    /// else
-
 })
 
 export default router;

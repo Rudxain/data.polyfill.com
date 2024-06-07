@@ -34,10 +34,10 @@ export const GetContentFromRedis = async (url) => {
     }
 }
 
-export const SaveContentToRedis = async (url, content) => {
+export const SaveContentToRedis = async (url, content, expire) => {
     try {
         await redisFile.set(url, content);
-        await redisFile.expire(url, 86400);
+        await redisFile.expire(url, expire);
     } catch (error) {
         console.log("error while saving data to db", error);
     }

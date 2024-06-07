@@ -2,7 +2,8 @@ import express from 'express';
 var router = express.Router();
 import algoliasearch from 'algoliasearch';
 import searchdata from '../fake/algoliasearch.json' assert { type: 'json' };
-
+import { GetContentFromRedis, SaveContentToRedis } from '../db/redis.js';
+import * as CONST from '../utils/const.js';
 import dotenv from 'dotenv';
 if (process.env.NODE_ENV !== 'production') {
   dotenv.config({ path: '.env.development' });
@@ -13,6 +14,15 @@ if (process.env.NODE_ENV !== 'production') {
 const client = algoliasearch(process.env.ALGOLIA_APP_ID, process.env.ALGOLIA_API_KEY);
 
 router.get('/', async (req, res) => {
+
+  /// if already exist in cache, send it
+  const cacheData = await GetContentFromRedis(req.originalUrl);
+  if (cacheData != null) {
+      console.log('loading from redis', req.originalUrl);
+      res.send(cacheData);
+      return;
+  }
+
   const searchText = req.query.search;
   const searchPage = req.query.page || 0;
   const facetFilters = req.query.filter || '';
@@ -83,7 +93,9 @@ router.get('/', async (req, res) => {
             downloads: item.jsDelivrHits,
           }
         });
-        res.json({ result: true, data: data, page: page, totalPages: nbPages });
+        const respData = { result: true, data: data, page: page, totalPages: nbPages };
+        await SaveContentToRedis(req.originalUrl, JSON.stringify(respData), CONST.EXPIRE_MONTH);
+        res.json(respData);
       } else {
         res.json({ result: false, data: [] })
       }

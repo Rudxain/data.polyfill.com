@@ -1,13 +1,10 @@
 import express from 'express';
 var router = express.Router();
 import algoliasearch from 'algoliasearch';
-
 import request from '../utils/request.js';
-
-//import { GetContentFromRedis, SaveContentToRedis } from '../db/redis.js';
-
-/// temp json
+import { GetContentFromRedis, SaveContentToRedis } from '../db/redis.js';
 import overview_data from '../fake/algolia_npm_overview.json' assert { type: 'json' };
+import * as CONST from '../utils/const.js';
 
 import dotenv from 'dotenv';
 if (process.env.NODE_ENV !== 'production') {
@@ -27,6 +24,14 @@ router.get('/*/overview', async (req, res) => {
     console.log(project);
     let response = {};
 
+    /// if already exist in cache, send it
+    const cacheData = await GetContentFromRedis(req.originalUrl);
+    if (cacheData != null) {
+        console.log('loading from redis', req.originalUrl);
+        res.send(cacheData);
+        return;
+    }
+
     console.log('fetching npm package overview for', project);
 
     // algolia search
@@ -44,13 +49,14 @@ router.get('/*/overview', async (req, res) => {
             styleTypes: overview_data.styleTypes,
             license: overview_data.license,
             github_url: overview_data.github_url,
+            keywords: overview_data.keywords,
             homepage: overview_data.homepage,
             downloads: overview_data.downloads,
         };
     } else {
         try {
             const index = client.initIndex('npm-search');
-            
+
             const searchOptions = {
                 hitsPerPage: 1,
                 page: 0,
@@ -74,36 +80,42 @@ router.get('/*/overview', async (req, res) => {
                     github_url: item.owner.link,
                     homepage: item.homepage,
                     downloads: item.jsDelivrHits,
+                    keywords: item.keywords,
                 }
-                
+
             } else {
-                res.json({status: 404, success: false, data: [] })
+                res.json({ status: 404, success: false, data: [] })
                 return;
             }
         } catch (error) {
-            res.send({ status: 400, success:false, error: error.message });
+            res.send({ status: 400, success: false, error: error.message });
             return;
         }
     }
 
-    res.json({ status: 200, success: true, data: response });
-
-
-    // name, owner, popular, moduleTypes, styleTypes, description, version, license, homepage, github_url, npm_url, download_url,
-
-
-    // get package.json from cdn
+    const respData = { status: 200, success: true, data: response };
+    await SaveContentToRedis(req.originalUrl, JSON.stringify(respData), CONST.EXPIRE_MONTH)
+    res.json(respData);
 })
 
 /// get entrypoints
 router.get('/*/entrypoints', async (req, res) => {
+
+    /// if already exist in cache, send it
+    const cacheData = await GetContentFromRedis(req.originalUrl);
+    if (cacheData != null) {
+        console.log('loading from redis', req.originalUrl);
+        res.send(cacheData);
+        return;
+    }
+
     const params = req.params[0];
     const paramsplit = params.split("@");
     if (paramsplit.length < 2) {
-        res.send({success: false, status:400});
+        res.send({ success: false, status: 400 });
     }
     var pkg, version;
-    version = paramsplit[paramsplit.length-1];
+    version = paramsplit[paramsplit.length - 1];
     pkg = params.replace(`@${version}`, "");
 
     /// get redis
@@ -113,57 +125,72 @@ router.get('/*/entrypoints', async (req, res) => {
     const url = `https://data.jsdelivr.com/v1/packages/npm/${pkg}@${version}/entrypoints`;
 
     try {
-        const {data} = await request.get(url);
-        res.send({success: true, data: data});
+        const { data } = await request.get(url);
+        const respData = { success: true, data: data };
+        await SaveContentToRedis(req.originalUrl, JSON.stringify(respData), CONST.EXPIRE_YEAR)
+        res.json(respData);
     } catch (error) {
-        res.send({success: false});
+        res.send({ success: false });
     }
 })
 
 /// get versions
-router.get('/*/versions', async (req, res)=>{
-    
+router.get('/*/versions', async (req, res) => {
+
+    /// if already exist in cache, send it
+    const cacheData = await GetContentFromRedis(req.originalUrl);
+    if (cacheData != null) {
+        console.log('loading from redis', req.originalUrl);
+        res.send(cacheData);
+        return;
+    }
+
     const pkg = req.params[0];
-
-    /// get redis
-
     /// else
     const url = `https://data.jsdelivr.com/v1/packages/npm/${pkg}`;
     try {
-        const {data} = await request.get(url);
-        const versions = data.versions.map(item=>item.version);
-        res.send({success: true, versions: versions});
-        // save to redis
-
+        const { data } = await request.get(url);
+        const versions = data.versions.map(item => item.version);
+        const respData = { success: true, versions: versions };
+        await SaveContentToRedis(req.originalUrl, JSON.stringify(respData), CONST.EXPIRE_MONTH)
+        res.send(respData);
     } catch (error) {
         console.log(error);
-        res.send({success: false});
+        res.send({ success: false });
     }
 })
 
 /// get file list of a package/version
-router.get('/*/files', async (req, res)=>{
-    
+router.get('/*/files', async (req, res) => {
+
+    /// if already exist in cache, send it
+    const cacheData = await GetContentFromRedis(req.originalUrl);
+    if (cacheData != null) {
+        console.log('loading from redis', req.originalUrl);
+        res.send(cacheData);
+        return;
+    }
+
     const params = req.params[0];
     const paramsplit = params.split("@");
     if (paramsplit.length < 2) {
-        res.send({success: false, status:400});
+        res.send({ success: false, status: 400 });
     }
     var pkg, version;
-    version = paramsplit[paramsplit.length-1];
+    version = paramsplit[paramsplit.length - 1];
     pkg = params.replace(`@${version}`, "");
     /// get redis
 
     /// else
     const url = `https://data.jsdelivr.com/v1/packages/npm/${pkg}@${version}`;
     try {
-        const {data} = await request.get(url);
-        res.send({success: true, data: data});
-        // save to redis
-
+        const { data } = await request.get(url);
+        const respData = { success: true, data: data };
+        await SaveContentToRedis(req.originalUrl, JSON.stringify(respData), CONST.EXPIRE_YEAR)
+        res.send(respData);
     } catch (error) {
         console.log(error);
-        res.send({success: false});
+        res.send({ success: false });
     }
 })
 
