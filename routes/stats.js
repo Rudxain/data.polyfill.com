@@ -191,7 +191,7 @@ const fetchAnalyticsData = async (startDate, endDate) => {
           'Content-Type': 'application/json'
         }
       });
-
+    console.log('response data: ', response.data);
     return response.data.data.viewer.zones[0].httpRequests1dGroups;
   } catch (error) {
     console.error('Error fetching analytics data:', error);
@@ -204,6 +204,8 @@ const aggregateData = (data) => {
   const browserData = {};
   let totalRequests = 0;
   let totalBytes = 0;
+
+  console.log('fetch succeeded, aggregating data');
 
   data.forEach(item => {
     item.sum.countryMap.forEach(country => {
