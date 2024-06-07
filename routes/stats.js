@@ -150,7 +150,7 @@ router.get('/packages/npm/*/files', async (req, res) => {
   }
 })
 
-const fetchAnalyticsData = async (startDate, endDate) => {
+const fetchNetworkStatsData = async (startDate, endDate) => {
   const query = `
     {
         viewer {
@@ -199,50 +199,56 @@ const fetchAnalyticsData = async (startDate, endDate) => {
   }
 };
 
-const aggregateData = (data) => {
-  const countryData = {};
-  const browserData = {};
-  let totalRequests = 0;
-  let totalBytes = 0;
+const fetchCountryStatsData = async (startDate, endDate) => {
+  const query = `
+    {
+        viewer {
+            zones(filter: {zoneTag: "${zoneId}"}) {
+                httpRequests1dGroups(filter: {date_gt: "${startDate}", date_lt: "${endDate}"} limit: 10000 orderBy: [date_ASC]) {
+                    dimensions {
+                        date
+                    }
+                    sum {
+                        bytes
+                        requests
+                        pageViews
+                        cachedBytes
+                        cachedRequests
+                        browserMap {
+                            pageViews
+                            uaBrowserFamily
+                        }
+                        countryMap {
+                            bytes
+                            clientCountryName
+                            requests
+                        }
+                    }
+                }
+            }
+        }
+    }`;
 
-  console.log('fetch succeeded, aggregating data');
-
-  data.forEach(item => {
-    item.sum.countryMap.forEach(country => {
-      if (!countryData[country.clientCountryName]) {
-        countryData[country.clientCountryName] = { requests: 0, bytes: 0 };
-      }
-      countryData[country.clientCountryName].requests += country.requests;
-      countryData[country.clientCountryName].bytes += country.bytes;
-    });
-
-    item.sum.browserMap.forEach(browser => {
-      if (!browserData[browser.uaBrowserFamily]) {
-        browserData[browser.uaBrowserFamily] = { pageViews: 0 };
-      }
-      browserData[browser.uaBrowserFamily].pageViews += browser.pageViews;
-    });
-
-    totalRequests += item.sum.requests;
-    totalBytes += item.sum.bytes;
-  });
-
-  return {
-    countryData,
-    browserData,
-    total: {
-      requests: totalRequests,
-      bytes: totalBytes
-    }
-  };
+  try {
+    const response = await axios.post('https://api.cloudflare.com/client/v4/graphql',
+      {
+        query: query
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${apiToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+    console.log('response data: ', response.data);
+    return response.data.data.viewer.zones[0].httpRequests1dGroups;
+  } catch (error) {
+    console.error('Error fetching analytics data:', error);
+    throw error;
+  }
 };
 
-router.get('/cdn/cloudflare', async (req, res) => {
-  console.log('fetching from cloudflare');
-
-  console.log('getting duration');
-
-  const period = req.query.period;
+const getStartEndDatesFromPeriod = (period) => {
   var date = new Date();
   var startDate;
   var endDate = getDateString();
@@ -290,12 +296,23 @@ router.get('/cdn/cloudflare', async (req, res) => {
   console.log('start_date:', startDate);
   console.log('end_date', endDate);
 
+  return {startDate, endDate};
+}
+
+router.get('/cdn/cloudflare', async (req, res) => {
+  console.log('fetching from cloudflare');
+
+  console.log('getting duration');
+
+  const period = req.query.period;
+  
+  const {startDate, endDate} = getStartEndDatesFromPeriod(period);
+
   console.log('trying to fetch data from api.cloudflare');
 
   try {
-    const data = await fetchAnalyticsData(startDate, endDate);
-    const aggregatedData = aggregateData(data);
-    res.json(aggregatedData);
+    const data = await fetchNetworkStatsData(startDate, endDate);
+    res.json(data);
   } catch (error) {
     res.status(500).json({ error: error });
   }
