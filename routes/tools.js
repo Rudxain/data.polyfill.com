@@ -37,7 +37,7 @@ router.get('/gh', async (req, res) => {
 
     /// check url again
     if (splitted.length < 5) {
-        res.status(400).send({result:false, cdn_url: cdnUrl});
+        res.send({result:false});
         return;
     }
 
@@ -45,14 +45,15 @@ router.get('/gh', async (req, res) => {
     let version = splitted[3];
     if (version === 'main') version = '';
 
-    splitted.slice(2, 2);
-
     console.log(splitted);
 
+    const filePath = splitted.slice(4).join('/');
 
-    cdnUrl = `${process.env.CDN_BASE_URL}/${splitted[0]}/${splitted[1]}/${version}/`
+    cdnUrl = `${process.env.CDN_BASE_URL}/gh/${splitted[0]}/${splitted[1]}@${version}/${filePath}`;
+    console.log(cdnUrl);
 
-    res.send('welcome');
+    const respData = {result:true, url:cdnUrl};
+    res.send(respData);
 })
 
 
