@@ -22,7 +22,7 @@ redisFile.on('connect', () => {
 });
 
 redisFile.on('error', (err) => {
-    console.error(`RedisFile connection error: ${err}`);
+   // console.error(`RedisFile connection error: ${err}`);
 });
 
 export const GetContentFromRedis = async (url) => {
