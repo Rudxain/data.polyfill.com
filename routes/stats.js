@@ -157,7 +157,7 @@ const fetchNetworkStatsData = async (startDate, endDate) => {
     {
         viewer {
             zones(filter: {zoneTag: "${zoneId}"}) {
-                httpRequests1dGroups(filter: {date_gt: "${startDate}", date_lt: "${endDate}"} limit: 10000 orderBy: [date_ASC]) {
+                httpRequests1dGroups(filter: {date_gt: "${startDate}", date_lt: "${endDate}"} limit: 10000) {
                     dimensions {
                         date
                     }
