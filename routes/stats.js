@@ -352,7 +352,6 @@ const fetchCountryStatsData = async (startDate, endDate) => {
           'Content-Type': 'application/json'
         }
       });
-    console.log(response);
     return response.data.data.viewer.zones[0].httpRequests1dGroups;
   } catch (error) {
     console.error('Error fetching analytics data:', error);
@@ -414,7 +413,8 @@ router.get('/network/countries', async (req, res) => {
   } else {
     try {
       const data = await fetchCountryStatsData(startDate, endDate);
-      res.json({ result: true, data: data });
+      //res.json({ result: true, data: data });
+      res.json(data);
 
     } catch (error) {
       res.json({ result: false, error: error });
