@@ -192,8 +192,8 @@ const fetchNetworkStatsData = async (startDate, endDate) => {
 router.get('/network', async (req, res) => {
 
   const period = req.query.period;
-  
-  const {prevDate, startDate, endDate} = GetPrevStartEndDatesFromPeriod(period);
+
+  const { prevDate, startDate, endDate } = GetPrevStartEndDatesFromPeriod(period);
 
   if (process.env.NODE_ENV == 'development') {
     let prev_data = [
@@ -237,18 +237,18 @@ router.get('/network', async (req, res) => {
         }
       }
     ];
-    
+
     let result = {
-      bandwidth: { total: 0, dates: {}, prev: {total: 0} },
-      hits: { total: 0, dates: {}, prev: {total: 0} },
+      bandwidth: { total: 0, dates: {}, prev: { total: 0 } },
+      hits: { total: 0, dates: {}, prev: { total: 0 } },
       hitrates: 0
     };
-    
+
     let totalPrevRequests = 0;
     let totalPrevBandwidth = 0
     let totalCachedRequests = 0;
 
-    prev_data.forEach(data=>{
+    prev_data.forEach(data => {
       totalPrevRequests += data.sum.requests;
       totalPrevBandwidth += data.sum.bytes;
     })
@@ -264,38 +264,38 @@ router.get('/network', async (req, res) => {
       result.bandwidth.total += data.sum.bytes;
       totalCachedRequests += data.sum.cachedRequests;
     });
-    
+
     if (result.hits.total == 0) {
       result.hitrates = 0
     } else {
-      result.hitrates = 100*totalCachedRequests / result.hits.total
+      result.hitrates = 100 * totalCachedRequests / result.hits.total
     }
 
-    res.json({result: true, data: result});
-    
+    res.json({ result: true, data: result });
+
   } else {
     try {
       const prev_data = await fetchNetworkStatsData(prevDate, startDate);
       const current_data = await fetchNetworkStatsData(startDate, endDate);
 
       let result = {
-        bandwidth: { total: 0, dates: {}, prev: {total: 0} },
-        hits: { total: 0, dates: {}, prev: {total: 0} },
+        bandwidth: { total: 0, dates: {}, prev: { total: 0 } },
+        hits: { total: 0, dates: {}, prev: { total: 0 } },
         hitrates: 0
       };
-      
+
       let totalPrevRequests = 0;
       let totalPrevBandwidth = 0
       let totalCachedRequests = 0;
-  
-      prev_data.forEach(data=>{
+
+      prev_data.forEach(data => {
         totalPrevRequests += data.sum.requests;
         totalPrevBandwidth += data.sum.bytes;
       })
-  
+
       result.hits.prev.total = totalPrevRequests;
       result.bandwidth.prev.total = totalPrevBandwidth;
-  
+
       current_data.forEach(data => {
         let date = data.dimensions.date;
         result.hits.dates[date] = data.sum.requests;
@@ -304,17 +304,17 @@ router.get('/network', async (req, res) => {
         result.bandwidth.total += data.sum.bytes;
         totalCachedRequests += data.sum.cachedRequests;
       });
-      
+
       if (result.hits.total == 0) {
         result.hitrates = 0
       } else {
-        result.hitrates = 100*totalCachedRequests / result.hits.total
+        result.hitrates = 100 * totalCachedRequests / result.hits.total
       }
-      
-      res.json({result: true, data: result});
+
+      res.json({ result: true, data: result });
 
     } catch (error) {
-      res.json({result: false, error: error });
+      res.json({ result: false, error: error });
     }
   }
 })
@@ -352,6 +352,7 @@ const fetchCountryStatsData = async (startDate, endDate) => {
           'Content-Type': 'application/json'
         }
       });
+    console.log(response);
     return response.data.data.viewer.zones[0].httpRequests1dGroups;
   } catch (error) {
     console.error('Error fetching analytics data:', error);
@@ -362,8 +363,8 @@ const fetchCountryStatsData = async (startDate, endDate) => {
 router.get('/network/countries', async (req, res) => {
 
   const period = req.query.period;
-  
-  const {startDate, endDate} = GetStartEndDatesFromPeriod(period);
+
+  const { startDate, endDate } = GetStartEndDatesFromPeriod(period);
 
   if (process.env.NODE_ENV == 'development') {
 
@@ -387,10 +388,10 @@ router.get('/network/countries', async (req, res) => {
         }
       }
     ];
-    
+
     let result = {
-      hits: {total: 0, countries: []},
-      bandwidth: {total: 0, countries: []}
+      hits: { total: 0, countries: [] },
+      bandwidth: { total: 0, countries: [] }
     };
 
     data.forEach(data => {
@@ -401,22 +402,22 @@ router.get('/network/countries', async (req, res) => {
       result.bandwidth.total += data.sum.bytes;
       totalCachedRequests += data.sum.cachedRequests;
     });
-    
+
     if (result.hits.total == 0) {
       result.hitrates = 0
     } else {
-      result.hitrates = 100*totalCachedRequests / result.hits.total
+      result.hitrates = 100 * totalCachedRequests / result.hits.total
     }
 
-    res.json({result: true, data: result});
-    
+    res.json({ result: true, data: result });
+
   } else {
     try {
       const data = await fetchCountryStatsData(startDate, endDate);
-      res.json({result: true, data: data});
+      res.json({ result: true, data: data });
 
     } catch (error) {
-      res.json({result: false, error: error });
+      res.json({ result: false, error: error });
     }
   }
 })
