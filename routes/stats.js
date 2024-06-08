@@ -363,7 +363,7 @@ router.get('/network/countries', async (req, res) => {
 
   const period = req.query.period;
   
-  const {startDate, endDate} = GetDateStringsFromPeriod(period);
+  const {startDate, endDate} = GetStartEndDatesFromPeriod(period);
 
   if (process.env.NODE_ENV == 'development') {
 
