@@ -12,6 +12,7 @@ if (process.env.NODE_ENV !== 'production') {
 import { GetContentFromRedis, SaveContentToRedis } from '../db/redis.js';
 import * as CONST from '../utils/const.js';
 import { getDateString, getMonthDayString } from '../utils/datetime.js';
+import { GetPrevStartEndDatesFromPeriod, GetStartEndDatesFromPeriod } from '../utils/period.js';
 
 
 const apiToken = process.env.Cloudflare_ApiToken;
@@ -150,6 +151,7 @@ router.get('/packages/npm/*/files', async (req, res) => {
   }
 })
 
+///////////// Network stats
 const fetchNetworkStatsData = async (startDate, endDate) => {
   const query = `
     {
@@ -187,133 +189,11 @@ const fetchNetworkStatsData = async (startDate, endDate) => {
   }
 };
 
-const fetchCountryStatsData = async (startDate, endDate) => {
-  const query = `
-    {
-        viewer {
-            zones(filter: {zoneTag: "${zoneId}"}) {
-                httpRequests1dGroups(filter: {date_gt: "${startDate}", date_lt: "${endDate}"} limit: 10000 orderBy: [date_ASC]) {
-                    dimensions {
-                        date
-                    }
-                    sum {
-                        bytes
-                        requests
-                        pageViews
-                        cachedBytes
-                        cachedRequests
-                        browserMap {
-                            pageViews
-                            uaBrowserFamily
-                        }
-                        countryMap {
-                            bytes
-                            clientCountryName
-                            requests
-                        }
-                    }
-                }
-            }
-        }
-    }`;
-
-  try {
-    const response = await axios.post('https://api.cloudflare.com/client/v4/graphql',
-      {
-        query: query
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${apiToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
-    console.log('response data: ', response.data);
-    return response.data.data.viewer.zones[0].httpRequests1dGroups;
-  } catch (error) {
-    console.error('Error fetching analytics data:', error);
-    throw error;
-  }
-};
-
-const getStartEndDatesFromPeriod = (period) => {
-  var date = new Date();
-  var prevDate;
-  var startDate;
-  var endDate = getDateString();
-
-  console.log('period', period);
-
-  if (period === 'quarter') {
-    let dateStart = new Date();
-    dateStart.setMonth(date.getMonth() - 3);
-    startDate = getDateString(dateStart);
-    dateStart.setMonth(date.getMonth()-6);
-    prevDate = getDateString(dateStart);
-  } else if (period === 'year') {
-    let dateStart = new Date();
-    dateStart.setFullYear(date.getFullYear() - 1);
-    startDate = getDateString(dateStart);
-    dateStart.setFullYear(date.getFullYear()-2);
-    prevDate = getDateString(dateStart);
-  } else if (period.split('-').length == 2) {
-    const [year, month] = period.split('-');
-    console.log(year, month);
-    if (month == 'Q1') {
-      startDate = `${year}-01-01`;
-      endDate = `${year}-03-31`;
-      prevDate = `${year-1}-10-01`;
-    } else if (month == 'Q2') {
-      startDate = `${year}-04-01`;
-      endDate = `${year}-06-30`;
-      prevDate = `${year}-01-01`;
-    } else if (month == 'Q3') {
-      startDate = `${year}-07-01`;
-      endDate = `${year}-09-30`;
-      prevDate = `${year}-04-01`;
-    } else if (month == 'Q4') {
-      prevDate = `${year}-07-01`;
-      startDate = `${year}-10-01`;
-      endDate = `${year}-12-31`;
-    } else if (parseInt(month) > 0 && parseInt(month) <= 12) {
-      startDate = `${year}-${month}-01`;
-      const last_date = new Date(year, month, 0).getDate();
-      endDate = year + '-' + month + '-' + last_date;
-      const sd = new Date(startDate);
-      sd.setMonth(sd.getMonth()-1);
-      prevDate = getDateString(sd);
-    } else {
-      let dateStart = new Date();
-      dateStart.setMonth(date.getMonth() - 1);
-      startDate = getDateString(dateStart);
-      dateStart.setMonth(date.getMonth()-2);
-      prevDate = getDateString(dateStart);
-    }
-  } else {
-    let dateStart = new Date();
-    dateStart.setMonth(date.getMonth() - 1);
-    startDate = getDateString(dateStart)
-    dateStart.setMonth(date.getMonth()-2);
-    prevDate = getDateString(dateStart);
-  }
-
-  console.log('prev_date:', prevDate);
-  console.log('start_date:', startDate);
-  console.log('end_date', endDate);
-
-  return {prevDate, startDate, endDate};
-}
-
 router.get('/network', async (req, res) => {
-  console.log('fetching from cloudflare');
-
-  console.log('getting duration');
 
   const period = req.query.period;
   
-  const {prevDate, startDate, endDate} = getStartEndDatesFromPeriod(period);
-
-  console.log('trying to fetch data from api.cloudflare');
+  const {prevDate, startDate, endDate} = GetPrevStartEndDatesFromPeriod(period);
 
   if (process.env.NODE_ENV == 'development') {
     let prev_data = [
@@ -390,8 +270,6 @@ router.get('/network', async (req, res) => {
     } else {
       result.hitrates = 100*totalCachedRequests / result.hits.total
     }
-    
-    console.log(result);
 
     res.json({result: true, data: result});
     
@@ -433,12 +311,112 @@ router.get('/network', async (req, res) => {
         result.hitrates = 100*totalCachedRequests / result.hits.total
       }
       
-      console.log(result);
-  
       res.json({result: true, data: result});
 
     } catch (error) {
-      res.status(500).json({ error: error });
+      res.json({result: false, error: error });
+    }
+  }
+})
+
+
+///////////// Country stats
+const fetchCountryStatsData = async (startDate, endDate) => {
+  const query = `
+    {
+        viewer {
+            zones(filter: {zoneTag: "${zoneId}"}) {
+                httpRequests1dGroups(filter: {date_gt: "${startDate}", date_lt: "${endDate}"} limit: 10000 orderBy: [date_ASC]) {
+                    sum {
+                        requests
+                        bytes
+                        countryMap {
+                            bytes
+                            clientCountryName
+                            requests
+                        }
+                    }
+                }
+            }
+        }
+    }`;
+
+  try {
+    const response = await axios.post('https://api.cloudflare.com/client/v4/graphql',
+      {
+        query: query
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${apiToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+    return response.data.data.viewer.zones[0].httpRequests1dGroups;
+  } catch (error) {
+    console.error('Error fetching analytics data:', error);
+    throw error;
+  }
+};
+
+router.get('/network/countries', async (req, res) => {
+
+  const period = req.query.period;
+  
+  const {startDate, endDate} = GetDateStringsFromPeriod(period);
+
+  if (process.env.NODE_ENV == 'development') {
+
+    let data = [
+      {
+        "dimensions": { "date": "2024-05-09" },
+        "sum": {
+          "bytes": 1874845152344,
+          "cachedBytes": 1797055085201,
+          "cachedRequests": 1284330958,
+          "requests": 1301878923
+        }
+      },
+      {
+        "dimensions": { "date": "2024-05-10" },
+        "sum": {
+          "bytes": 1881566302489,
+          "cachedBytes": 1803440443780,
+          "cachedRequests": 1278366717,
+          "requests": 1295266753
+        }
+      }
+    ];
+    
+    let result = {
+      hits: {total: 0, countries: []},
+      bandwidth: {total: 0, countries: []}
+    };
+
+    data.forEach(data => {
+      let date = data.dimensions.date;
+      result.hits.dates[date] = data.sum.requests;
+      result.hits.total += data.sum.requests;
+      result.bandwidth.dates[date] = data.sum.bytes;
+      result.bandwidth.total += data.sum.bytes;
+      totalCachedRequests += data.sum.cachedRequests;
+    });
+    
+    if (result.hits.total == 0) {
+      result.hitrates = 0
+    } else {
+      result.hitrates = 100*totalCachedRequests / result.hits.total
+    }
+
+    res.json({result: true, data: result});
+    
+  } else {
+    try {
+      const data = await fetchCountryStatsData(startDate, endDate);
+      res.json({result: true, data: data});
+
+    } catch (error) {
+      res.json({result: false, error: error });
     }
   }
 })
