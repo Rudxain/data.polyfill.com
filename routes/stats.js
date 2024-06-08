@@ -180,7 +180,6 @@ const fetchNetworkStatsData = async (startDate, endDate) => {
           'Content-Type': 'application/json'
         }
       });
-    console.log('response data: ', response.data);
     return response.data.data.viewer.zones[0].httpRequests1dGroups;
   } catch (error) {
     console.error('Error fetching analytics data:', error);
