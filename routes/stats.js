@@ -81,7 +81,8 @@ router.get('/npm/*', async (req, res) => {
   }
 })
 
-router.get('/packages/npm/:package/versions', async (req, res) => {
+/// get top version list of a package
+router.get('/packages/npm/*/versions', async (req, res) => {
 
   /// if already exist in cache, send it
   const cacheData = await GetContentFromRedis(req.originalUrl);
@@ -91,7 +92,7 @@ router.get('/packages/npm/:package/versions', async (req, res) => {
     return;
   }
 
-  const pkg = req.params.package;
+  const pkg = req.params[0];
   var period = req.query.period;
   var limit = req.query.limit;
   var page = req.query.page;

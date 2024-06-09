@@ -16,14 +16,14 @@ router.get('/gh', async (req, res) => {
     let cdnUrl = '';
 
     if (gitUrl === undefined || gitUrl === '') {
-        res.status(400).send({result:false, cdn_url: cdnUrl});
+        res.send({success:false});
         return;
     }
 
     console.log(gitUrl);
 
     if (!gitUrl.startsWith(github_entry)) {
-        res.status(400).send({result:false, cdn_url: cdnUrl});
+        res.send({success:false});
         return;
     }
     
@@ -37,7 +37,7 @@ router.get('/gh', async (req, res) => {
 
     /// check url again
     if (splitted.length < 5) {
-        res.send({result:false});
+        res.send({success:false});
         return;
     }
 
@@ -52,7 +52,7 @@ router.get('/gh', async (req, res) => {
     cdnUrl = `${process.env.CDN_BASE_URL}/gh/${splitted[0]}/${splitted[1]}@${version}/${filePath}`;
     console.log(cdnUrl);
 
-    const respData = {result:true, url:cdnUrl};
+    const respData = {success:true, url:cdnUrl};
     res.send(respData);
 })
 
