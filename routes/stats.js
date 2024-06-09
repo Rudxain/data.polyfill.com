@@ -414,9 +414,28 @@ router.get('/network/countries', async (req, res) => {
   } else {
     try {
       const data = await fetchCountryStatsData(startDate, endDate);
-      //res.json({ result: true, data: data });
-      res.json(data);
-
+      if (data.length == 1 && data[0] !== {}) {
+        let result = {
+          hits: { total: 0, countries: [] },
+          bandwidth: { total: 0, countries: [] }
+        };
+    
+        /// hits
+        result.hits.total = data[0].sum.requests;
+        data[0].sum.countryMap.forEach(country=>{
+          result.hits.countries.push({code: country.clientCountryName, total: country.requests});
+        });
+  
+        /// bandwidth
+        result.bandwidth.total = data[0].sum.bytes;
+        data[0].sum.countryMap.forEach(country=>{
+          result.bandwidth.countries.push({code: country.clientCountryName, total: country.bytes});
+        })
+    
+        res.json({ result: true, data: result });
+      } else {
+        res.send({result: false, message: "not found"});
+      }
     } catch (error) {
       res.json({ result: false, error: error });
     }
