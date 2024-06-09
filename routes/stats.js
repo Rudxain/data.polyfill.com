@@ -2,6 +2,9 @@ import express from 'express';
 import axios from 'axios';
 var router = express.Router();
 import request from '../utils/request.js';
+
+import { fetchNetworkStatsData, fetchCountryStatsData } from '../utils/cloudflare.js';
+
 import dotenv from 'dotenv';
 if (process.env.NODE_ENV !== 'production') {
   dotenv.config({ path: '.env.development' });
@@ -11,14 +14,13 @@ if (process.env.NODE_ENV !== 'production') {
 
 import { GetContentFromRedis, SaveContentToRedis } from '../db/redis.js';
 import * as CONST from '../utils/const.js';
-import { getDateString, getMonthDayString } from '../utils/datetime.js';
 import { GetPrevStartEndDatesFromPeriod, GetStartEndDatesFromPeriod } from '../utils/period.js';
 
 
 const apiToken = process.env.Cloudflare_ApiToken;
 const zoneId = process.env.Cloudflare_ZoneId;
 
-
+/// stats period
 router.get('/periods', async (req, res) => {
   /// if already exist in cache, send it
   const cacheData = await GetContentFromRedis(req.originalUrl);
@@ -152,44 +154,15 @@ router.get('/packages/npm/*/files', async (req, res) => {
 })
 
 ///////////// Network stats
-const fetchNetworkStatsData = async (startDate, endDate) => {
-  const query = `
-    {
-        viewer {
-            zones(filter: {zoneTag: "${zoneId}"}) {
-                httpRequests1dGroups(filter: {date_gt: "${startDate}", date_lt: "${endDate}"} limit: 10000 orderBy: [date_ASC]) {
-                    dimensions {
-                        date
-                    }
-                    sum {
-                        bytes
-                        requests
-                        cachedRequests
-                    }
-                }
-            }
-        }
-    }`;
-
-  try {
-    const response = await axios.post('https://api.cloudflare.com/client/v4/graphql',
-      {
-        query: query
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${apiToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
-    return response.data.data.viewer.zones[0].httpRequests1dGroups;
-  } catch (error) {
-    console.error('Error fetching analytics data:', error);
-    throw error;
-  }
-};
-
 router.get('/network', async (req, res) => {
+
+  /// if already exist in cache, send it
+  const cacheData = await GetContentFromRedis(req.originalUrl);
+  if (cacheData != null) {
+    console.log('loading from redis', req.originalUrl);
+    res.send(cacheData);
+    return;
+  }
 
   const period = req.query.period;
 
@@ -240,8 +213,7 @@ router.get('/network', async (req, res) => {
 
     let result = {
       bandwidth: { total: 0, dates: {}, prev: { total: 0 } },
-      hits: { total: 0, dates: {}, prev: { total: 0 } },
-      hitrates: 0
+      hits: { total: 0, dates: {}, hitrates: 0, prev: { total: 0 } },
     };
 
     let totalPrevRequests = 0;
@@ -268,10 +240,10 @@ router.get('/network', async (req, res) => {
     if (result.hits.total == 0) {
       result.hitrates = 0
     } else {
-      result.hitrates = 100 * totalCachedRequests / result.hits.total
+      result.hits.hitrates = Math.round(10000 * totalCachedRequests / result.hits.total)/100;
     }
 
-    res.json({ result: true, data: result });
+    res.json({ success: true, data: result });
 
   } else {
     try {
@@ -280,8 +252,8 @@ router.get('/network', async (req, res) => {
 
       let result = {
         bandwidth: { total: 0, dates: {}, prev: { total: 0 } },
-        hits: { total: 0, dates: {}, prev: { total: 0 } },
-        hitrates: 0
+        hits: { total: 0, dates: {}, hitrates: 0, prev: { total: 0 } },
+        
       };
 
       let totalPrevRequests = 0;
@@ -308,58 +280,31 @@ router.get('/network', async (req, res) => {
       if (result.hits.total == 0) {
         result.hitrates = 0
       } else {
-        result.hitrates = 100 * totalCachedRequests / result.hits.total
+        result.hits.hitrates = Math.round(10000 * totalCachedRequests / result.hits.total)/100;
       }
 
-      res.json({ result: true, data: result });
+      const respData = { success: true, data: result }
+      await SaveContentToRedis(req.originalUrl, JSON.stringify(respData), CONST.EXPIRE_DAY);
+      res.json(respData);
 
     } catch (error) {
-      res.json({ result: false, error: error });
+      res.json({ success: false, error: error });
     }
   }
 })
 
 
 ///////////// Country stats
-const fetchCountryStatsData = async (startDate, endDate) => {
-  const query = `
-    {
-        viewer {
-            zones(filter: {zoneTag: "${zoneId}"}) {
-                httpRequests1dGroups(filter: {date_gt: "${startDate}", date_lt: "${endDate}"} limit: 10000) {
-                    sum {
-                        requests
-                        bytes
-                        countryMap {
-                            bytes
-                            clientCountryName
-                            requests
-                        }
-                    }
-                }
-            }
-        }
-    }`;
-
-  try {
-    const response = await axios.post('https://api.cloudflare.com/client/v4/graphql',
-      {
-        query: query
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${apiToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
-    return response.data.data.viewer.zones[0].httpRequests1dGroups;
-  } catch (error) {
-    console.error('Error fetching analytics data:', error);
-    throw error;
-  }
-};
 
 router.get('/network/countries', async (req, res) => {
+
+  /// if already exist in cache, send it
+  const cacheData = await GetContentFromRedis(req.originalUrl);
+  if (cacheData != null) {
+    console.log('loading from redis', req.originalUrl);
+    res.send(cacheData);
+    return;
+  }
 
   const period = req.query.period;
 
@@ -406,9 +351,9 @@ router.get('/network/countries', async (req, res) => {
         result.bandwidth.countries.push({code: country.clientCountryName, total: country.bytes});
       })
   
-      res.json({ result: true, data: result });
+      res.json({ success: true, data: result });
     } else {
-      res.send({result: false, message: "not found"});
+      res.send({success: false, message: "not found"});
     }
 
   } else {
@@ -432,12 +377,12 @@ router.get('/network/countries', async (req, res) => {
           result.bandwidth.countries.push({code: country.clientCountryName, total: country.bytes});
         })
     
-        res.json({ result: true, data: result });
+        res.json({ success: true, data: result });
       } else {
-        res.send({result: false, message: "not found"});
+        res.send({success: false, message: "not found"});
       }
     } catch (error) {
-      res.json({ result: false, error: error });
+      res.json({ success: false, error: error });
     }
   }
 })
