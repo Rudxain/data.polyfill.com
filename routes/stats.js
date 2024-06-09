@@ -369,46 +369,47 @@ router.get('/network/countries', async (req, res) => {
 
     let data = [
       {
-        "dimensions": { "date": "2024-05-09" },
         "sum": {
-          "bytes": 1874845152344,
-          "cachedBytes": 1797055085201,
-          "cachedRequests": 1284330958,
-          "requests": 1301878923
-        }
-      },
-      {
-        "dimensions": { "date": "2024-05-10" },
-        "sum": {
-          "bytes": 1881566302489,
-          "cachedBytes": 1803440443780,
-          "cachedRequests": 1278366717,
-          "requests": 1295266753
+          "bytes": 56800403163083,
+          "countryMap": [
+            {
+              "bytes": 2937890468,
+              "clientCountryName": "AD",
+              "requests": 3701796
+            },
+            {
+              "bytes": 62531856589,
+              "clientCountryName": "AE",
+              "requests": 62565196
+            }
+          ],
+          "requests": 38615714463
         }
       }
     ];
 
-    let result = {
-      hits: { total: 0, countries: [] },
-      bandwidth: { total: 0, countries: [] }
-    };
+    if (data.length == 1 && data[0] !== {}) {
+      let result = {
+        hits: { total: 0, countries: [] },
+        bandwidth: { total: 0, countries: [] }
+      };
+  
+      /// hits
+      result.hits.total = data[0].sum.requests;
+      data[0].sum.countryMap.forEach(country=>{
+        result.hits.countries.push({code: country.clientCountryName, total: country.requests});
+      });
 
-    data.forEach(data => {
-      let date = data.dimensions.date;
-      result.hits.dates[date] = data.sum.requests;
-      result.hits.total += data.sum.requests;
-      result.bandwidth.dates[date] = data.sum.bytes;
-      result.bandwidth.total += data.sum.bytes;
-      totalCachedRequests += data.sum.cachedRequests;
-    });
-
-    if (result.hits.total == 0) {
-      result.hitrates = 0
+      /// bandwidth
+      result.bandwidth.total = data[0].sum.bytes;
+      data[0].sum.countryMap.forEach(country=>{
+        result.bandwidth.countries.push({code: country.clientCountryName, total: country.bytes});
+      })
+  
+      res.json({ result: true, data: result });
     } else {
-      result.hitrates = 100 * totalCachedRequests / result.hits.total
+      res.send({result: false, message: "not found"});
     }
-
-    res.json({ result: true, data: result });
 
   } else {
     try {

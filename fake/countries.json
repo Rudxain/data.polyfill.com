@@ -1,0 +1,20 @@
+[
+    {
+        "sum": {
+            "bytes": 56800403163083,
+            "countryMap": [
+                {
+                    "bytes": 2937890468,
+                    "clientCountryName": "AD",
+                    "requests": 3701796
+                },
+                {
+                    "bytes": 62531856589,
+                    "clientCountryName": "AE",
+                    "requests": 62565196
+                }
+            ],
+            "requests": 38615714463
+        }
+    }
+]
