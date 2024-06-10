@@ -64,8 +64,6 @@ router.get('/npm/*', async (req, res) => {
   const pkg = req.params[0];
   const period = req.query.period || 'month';
 
-  console.log(pkg, period);
-
   // fetch
   const url = `https://data.jsdelivr.com/v1/stats/packages/npm/${pkg}?period=${period}`;
   try {
@@ -79,6 +77,36 @@ router.get('/npm/*', async (req, res) => {
     console.log(error);
     res.send({ success: false });
   }
+})
+
+/// get top package list
+router.get('/packages', async (req, res) => {
+  /// if already exist in cache, send it
+  const cacheData = await GetContentFromRedis(req.originalUrl);
+  if (cacheData != null) {
+    console.log('loading from redis', req.originalUrl);
+    res.send(cacheData);
+    return;
+  }
+
+  const qtype = req.query.type || 'npm';
+  const period = req.query.month || 'month';
+  const limit = req.query.limit || 10;
+  const page = req.query.page || 1;
+
+  const url = `https://data.jsdelivr.com/v1/stats/packages?type=${qtype}&period=${period}&limit=${limit}&page=${page}`;
+  try {
+    const { data } = await request.get(url);
+    console.log(data);
+    const data2 = data.map(item=>{return {type: item.type, name: item.name, hits: item.hits, bandwidth: item.bandwidth, prev: item.prev}});
+    const respData = { success: true, data: data2 };
+    await SaveContentToRedis(req.originalUrl, JSON.stringify(respData), CONST.EXPIRE_WEEK);
+    res.send(respData);
+  } catch (error) {
+    console.log(error);
+    res.send({ success: false });
+  }
+
 })
 
 /// get top version list of a package
@@ -115,6 +143,7 @@ router.get('/packages/npm/*/versions', async (req, res) => {
   }
 })
 
+/// get top file list of a package & version
 router.get('/packages/npm/*/files', async (req, res) => {
 
   /// if already exist in cache, send it
@@ -241,7 +270,7 @@ router.get('/network', async (req, res) => {
     if (result.hits.total == 0) {
       result.hitrates = 0
     } else {
-      result.hits.hitrates = Math.round(10000 * totalCachedRequests / result.hits.total)/100;
+      result.hits.hitrates = Math.round(10000 * totalCachedRequests / result.hits.total) / 100;
     }
 
     res.json({ success: true, data: result });
@@ -254,7 +283,7 @@ router.get('/network', async (req, res) => {
       let result = {
         bandwidth: { total: 0, dates: {}, prev: { total: 0 } },
         hits: { total: 0, dates: {}, hitrates: 0, prev: { total: 0 } },
-        
+
       };
 
       let totalPrevRequests = 0;
@@ -281,7 +310,7 @@ router.get('/network', async (req, res) => {
       if (result.hits.total == 0) {
         result.hitrates = 0
       } else {
-        result.hits.hitrates = Math.round(10000 * totalCachedRequests / result.hits.total)/100;
+        result.hits.hitrates = Math.round(10000 * totalCachedRequests / result.hits.total) / 100;
       }
 
       const respData = { success: true, data: result }
@@ -339,22 +368,22 @@ router.get('/network/countries', async (req, res) => {
         hits: { total: 0, countries: [] },
         bandwidth: { total: 0, countries: [] }
       };
-  
+
       /// hits
       result.hits.total = data[0].sum.requests;
-      data[0].sum.countryMap.forEach(country=>{
-        result.hits.countries.push({code: country.clientCountryName, total: country.requests});
+      data[0].sum.countryMap.forEach(country => {
+        result.hits.countries.push({ code: country.clientCountryName, total: country.requests });
       });
 
       /// bandwidth
       result.bandwidth.total = data[0].sum.bytes;
-      data[0].sum.countryMap.forEach(country=>{
-        result.bandwidth.countries.push({code: country.clientCountryName, total: country.bytes});
+      data[0].sum.countryMap.forEach(country => {
+        result.bandwidth.countries.push({ code: country.clientCountryName, total: country.bytes });
       })
-  
+
       res.json({ success: true, data: result });
     } else {
-      res.send({success: false, message: "not found"});
+      res.send({ success: false, message: "not found" });
     }
 
   } else {
@@ -365,22 +394,22 @@ router.get('/network/countries', async (req, res) => {
           hits: { total: 0, countries: [] },
           bandwidth: { total: 0, countries: [] }
         };
-    
+
         /// hits
         result.hits.total = data[0].sum.requests;
-        data[0].sum.countryMap.forEach(country=>{
-          result.hits.countries.push({code: country.clientCountryName, total: country.requests});
+        data[0].sum.countryMap.forEach(country => {
+          result.hits.countries.push({ code: country.clientCountryName, total: country.requests });
         });
-  
+
         /// bandwidth
         result.bandwidth.total = data[0].sum.bytes;
-        data[0].sum.countryMap.forEach(country=>{
-          result.bandwidth.countries.push({code: country.clientCountryName, total: country.bytes});
+        data[0].sum.countryMap.forEach(country => {
+          result.bandwidth.countries.push({ code: country.clientCountryName, total: country.bytes });
         })
-    
+
         res.json({ success: true, data: result });
       } else {
-        res.send({success: false, message: "not found"});
+        res.send({ success: false, message: "not found" });
       }
     } catch (error) {
       res.json({ success: false, error: error });
