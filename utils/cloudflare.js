@@ -1,5 +1,15 @@
 import axios from 'axios';
 
+import dotenv from 'dotenv';
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config({ path: '.env.development' });
+} else {
+  dotenv.config({ path: '.env' });
+}
+
+const apiToken = process.env.Cloudflare_ApiToken;
+const zoneId = process.env.Cloudflare_ZoneId;
+
 export const fetchNetworkStatsData = async (startDate, endDate) => {
     const query = `
       {

@@ -17,9 +17,6 @@ import * as CONST from '../utils/const.js';
 import { GetPrevStartEndDatesFromPeriod, GetStartEndDatesFromPeriod } from '../utils/period.js';
 
 
-const apiToken = process.env.Cloudflare_ApiToken;
-const zoneId = process.env.Cloudflare_ZoneId;
-
 /// stats period
 router.get('/periods', async (req, res) => {
   /// if already exist in cache, send it
