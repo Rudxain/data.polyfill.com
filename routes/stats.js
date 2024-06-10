@@ -180,6 +180,77 @@ router.get('/packages/npm/*/files', async (req, res) => {
   }
 })
 
+///// top platforms
+router.get('/platforms', async (req, res) => {
+  /// if already exist in cache, send it
+  const cacheData = await GetContentFromRedis(req.originalUrl);
+  if (cacheData != null) {
+    console.log('loading from redis', req.originalUrl);
+    res.send(cacheData);
+    return;
+  }
+
+  let period = req.query.period || 's-month';
+  if (period === 'month') period = 's-month';
+  if (period === 'quarter') period = 's-quarter';
+  if (period === 'year') period = 's-year';
+
+  const limit = req.query.limit || 10;
+  const page = req.query.page || 1;
+
+  const url = `https://data.jsdelivr.com/v1/stats/platforms?period=${period}&page=${page}&limit=${limit}`;
+  
+  try {
+    const { data } = await request.get(url);
+    const data1 = data.map(item => {
+      return { name: item.name, share: item.share, prev: item.prev };
+    });
+    const respData = { success: true, data: data1 }
+    await SaveContentToRedis(req.originalUrl, JSON.stringify(respData), CONST.EXPIRE_WEEK);
+    res.send(respData);
+  } catch (error) {
+    console.log(error);
+    res.send({ success: false });
+  }
+
+})
+
+///// top browsers
+router.get('/browsers', async (req, res) => {
+
+   /// if already exist in cache, send it
+   const cacheData = await GetContentFromRedis(req.originalUrl);
+   if (cacheData != null) {
+     console.log('loading from redis', req.originalUrl);
+     res.send(cacheData);
+     return;
+   }
+
+  let period = req.query.period || 's-month';
+  if (period === 'month') period = 's-month';
+  if (period === 'quarter') period = 's-quarter';
+  if (period === 'year') period = 's-year';
+
+  const limit = req.query.limit || 10;
+  const page = req.query.page || 1;
+
+  const url = `https://data.jsdelivr.com/v1/stats/browsers?period=${period}&page=${page}&limit=${limit}`;
+  
+  try {
+    const { data } = await request.get(url);
+    const data1 = data.map(item => {
+      return { name: item.name, share: item.share, prev: item.prev };
+    });
+    const respData = { success: true, data: data1 }
+    await SaveContentToRedis(req.originalUrl, JSON.stringify(respData), CONST.EXPIRE_WEEK);
+    res.send(respData);
+  } catch (error) {
+    console.log(error);
+    res.send({ success: false });
+  }
+
+})
+
 ///////////// Network stats
 router.get('/network', async (req, res) => {
 
