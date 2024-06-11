@@ -72,12 +72,10 @@ router.get('/unpkg', async (req, res) => {
 
     /// remove github entry
     srcUrl = srcUrl.replace(unpkg_base, "");
-    console.log(srcUrl);
 
     /// split
 
     let splitted = srcUrl.split('/');
-    console.log(splitted);
     
     /// check url again
     if (splitted.length < 2) {
@@ -86,10 +84,8 @@ router.get('/unpkg', async (req, res) => {
     }
 
     const v2 = splitted.join('/');
-    console.log(v2);
 
     cdnUrl = `${process.env.CDN_BASE_URL}/npm/${v2}`;
-    console.log(cdnUrl);
 
     const respData = { success: true, url: cdnUrl };
     res.send(respData);
@@ -135,8 +131,6 @@ router.get('/google', async (req, res) => {
         return;
     }
 
-    console.log(file);
-
     const googleHostedObj = google_hostes_libraries.find(lib=>lib.name===pkg);
     const isEntryValid = googleHostedObj.entrypoints.some(entry=>entry.google === file);
     if (isEntryValid === false) {
@@ -160,8 +154,6 @@ router.get('/skypack', async (req, res) => {
     let srcUrl = req.query.url;
     let cdnUrl = '';
 
-    console.log('parsing skypack');
-
     if (srcUrl === undefined || srcUrl === '') {
         res.send({ success: false });
         return;
@@ -174,18 +166,14 @@ router.get('/skypack', async (req, res) => {
 
     /// remove github entry
     srcUrl = srcUrl.replace(skypack_base, "");
-    console.log(srcUrl);
 
     /// split
 
     let splitted = srcUrl.split('/');
-    console.log(splitted);
 
     const v2 = splitted.join('/');
-    console.log(v2);
 
     cdnUrl = `${process.env.CDN_BASE_URL}/npm/${v2}/+esm`;
-    console.log(cdnUrl);
 
     const respData = { success: true, url: cdnUrl };
     res.send(respData);
@@ -195,8 +183,6 @@ router.get('/esmsh', async (req, res) => {
 
     let srcUrl = req.query.url;
     let cdnUrl = '';
-
-    console.log('parsing esmsh');
 
     if (srcUrl === undefined || srcUrl === '') {
         res.send({ success: false });
@@ -210,18 +196,14 @@ router.get('/esmsh', async (req, res) => {
 
     /// remove github entry
     srcUrl = srcUrl.replace(esmsh_base, "");
-    console.log(srcUrl);
 
     /// split
-
     let splitted = srcUrl.split('/');
-    console.log(splitted);
 
     const v2 = splitted.join('/');
-    console.log(v2);
+
 
     cdnUrl = `${process.env.CDN_BASE_URL}/npm/${v2}/+esm`;
-    console.log(cdnUrl);
 
     const respData = { success: true, url: cdnUrl };
     res.send(respData);
