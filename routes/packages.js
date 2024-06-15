@@ -1,7 +1,6 @@
 import express from 'express';
 var router = express.Router();
 import algoliasearch from 'algoliasearch';
-import searchdata from '../fake/algoliasearch.json' assert { type: 'json' };
 import { GetContentFromRedis, SaveContentToRedis } from '../db/redis.js';
 import * as CONST from '../utils/const.js';
 import dotenv from 'dotenv';
@@ -27,10 +26,25 @@ router.get('/', async (req, res) => {
   const searchPage = req.query.page || 0;
   const facetFilters = req.query.filter || '';
 
-  console.log(facetFilters);
+  try {
+    const index = client.initIndex('npm-search');
+    let searchOptions = {};
+    if (facetFilters !== '') {
+      searchOptions = {
+        hitsPerPage: 10,
+        page: searchPage,
+        attributesToRetrieve: ["deprecated", "description", "githubRepo", "homepage", "keywords", "license", "name", "owner", "version", "popular", "moduleTypes", "styleTypes", "jsDelivrHits"],
+        facetFilters: facetFilters
+      };
+    } else {
+      searchOptions = {
+        hitsPerPage: 10,
+        page: searchPage,
+        attributesToRetrieve: ["deprecated", "description", "githubRepo", "homepage", "keywords", "license", "name", "owner", "version", "popular", "moduleTypes", "styleTypes", "jsDelivrHits", "downloadsLast30Days"]
+      };
+    }
 
-  if (process.env.NODE_ENV === 'development') {
-    const { hits, nbPages, page } = searchdata;
+    const { hits, nbPages, page } = await index.search(searchText, searchOptions);
     if (hits.length > 0) {
       const data = hits.map(item => {
         // console.log(item);
@@ -40,68 +54,24 @@ router.get('/', async (req, res) => {
           avatar: item.owner.avatar,
           version: item.version,
           description: item.description,
-          popular: true,
+          popular: item.popular,
           moduleTypes: item.moduleTypes,
           styleTypes: item.styleTypes,
           license: item.license,
           keywords: item.keywords,
           github_url: item.owner.link,
           homepage: item.homepage,
-          downloads: item.downloadsLast30Days,
+          downloads: item.jsDelivrHits,
         }
       });
-      res.json({ result: true, data: data, page: page, totalPages: nbPages });
+      const respData = { result: true, data: data, page: page, totalPages: nbPages };
+      await SaveContentToRedis(req.originalUrl, JSON.stringify(respData), CONST.EXPIRE_MONTH);
+      res.json(respData);
     } else {
       res.json({ result: false, data: [] })
     }
-  } else {
-    try {
-      const index = client.initIndex('npm-search');
-      let searchOptions = {};
-      if (facetFilters !== '') {
-        searchOptions = {
-          hitsPerPage: 10,
-          page: searchPage,
-          attributesToRetrieve: ["deprecated", "description", "githubRepo", "homepage", "keywords", "license", "name", "owner", "version", "popular", "moduleTypes", "styleTypes", "jsDelivrHits"],
-          facetFilters: facetFilters
-        };
-      } else {
-        searchOptions = {
-          hitsPerPage: 10,
-          page: searchPage,
-          attributesToRetrieve: ["deprecated", "description", "githubRepo", "homepage", "keywords", "license", "name", "owner", "version", "popular", "moduleTypes", "styleTypes", "jsDelivrHits", "downloadsLast30Days"]
-        };
-      }
-
-      const { hits, nbPages, page } = await index.search(searchText, searchOptions);
-      if (hits.length > 0) {
-        const data = hits.map(item => {
-          // console.log(item);
-          return {
-            name: item.name,
-            author: item.owner.name,
-            avatar: item.owner.avatar,
-            version: item.version,
-            description: item.description,
-            popular: item.popular,
-            moduleTypes: item.moduleTypes,
-            styleTypes: item.styleTypes,
-            license: item.license,
-            keywords: item.keywords,
-            github_url: item.owner.link,
-            homepage: item.homepage,
-            downloads: item.jsDelivrHits,
-          }
-        });
-        const respData = { result: true, data: data, page: page, totalPages: nbPages };
-        await SaveContentToRedis(req.originalUrl, JSON.stringify(respData), CONST.EXPIRE_MONTH);
-        res.json(respData);
-      } else {
-        res.json({ result: false, data: [] })
-      }
-    } catch (error) {
-      res.json({ error: error.message });
-    }
+  } catch (error) {
+    res.json({ error: error.message });
   }
 })
 

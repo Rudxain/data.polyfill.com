@@ -95,7 +95,7 @@ router.get('/packages', async (req, res) => {
   try {
     const { data } = await request.get(url);
     console.log(data);
-    const data2 = data.map(item=>{return {type: item.type, name: item.name, hits: item.hits, bandwidth: item.bandwidth, prev: item.prev}});
+    const data2 = data.map(item => { return { type: item.type, name: item.name, hits: item.hits, bandwidth: item.bandwidth, prev: item.prev } });
     const respData = { success: true, data: data2 };
     await SaveContentToRedis(req.originalUrl, JSON.stringify(respData), CONST.EXPIRE_WEEK);
     res.send(respData);
@@ -199,7 +199,7 @@ router.get('/platforms', async (req, res) => {
   const page = req.query.page || 1;
 
   const url = `https://data.jsdelivr.com/v1/stats/platforms?period=${period}&page=${page}&limit=${limit}`;
-  
+
   try {
     const { data } = await request.get(url);
     const data1 = data.map(item => {
@@ -218,13 +218,13 @@ router.get('/platforms', async (req, res) => {
 ///// top browsers
 router.get('/browsers', async (req, res) => {
 
-   /// if already exist in cache, send it
-   const cacheData = await GetContentFromRedis(req.originalUrl);
-   if (cacheData != null) {
-     console.log('loading from redis', req.originalUrl);
-     res.send(cacheData);
-     return;
-   }
+  /// if already exist in cache, send it
+  const cacheData = await GetContentFromRedis(req.originalUrl);
+  if (cacheData != null) {
+    console.log('loading from redis', req.originalUrl);
+    res.send(cacheData);
+    return;
+  }
 
   let period = req.query.period || 's-month';
   if (period === 'month') period = 's-month';
@@ -235,7 +235,7 @@ router.get('/browsers', async (req, res) => {
   const page = req.query.page || 1;
 
   const url = `https://data.jsdelivr.com/v1/stats/browsers?period=${period}&page=${page}&limit=${limit}`;
-  
+
   try {
     const { data } = await request.get(url);
     const data1 = data.map(item => {
@@ -263,55 +263,15 @@ router.get('/network', async (req, res) => {
   }
 
   const period = req.query.period;
-
   const { prevDate, startDate, endDate } = GetPrevStartEndDatesFromPeriod(period);
-
-  if (process.env.NODE_ENV == 'development') {
-    let prev_data = [
-      {
-        "dimensions": { "date": "2024-05-09" },
-        "sum": {
-          "bytes": 1674845152344,
-          "cachedBytes": 1797055085201,
-          "cachedRequests": 1284330958,
-          "requests": 1201878923
-        }
-      },
-      {
-        "dimensions": { "date": "2024-05-10" },
-        "sum": {
-          "bytes": 1681566302489,
-          "cachedBytes": 1803440443780,
-          "cachedRequests": 1278366717,
-          "requests": 1295266753
-        }
-      }
-    ];
-
-    let current_data = [
-      {
-        "dimensions": { "date": "2024-05-09" },
-        "sum": {
-          "bytes": 1874845152344,
-          "cachedBytes": 1797055085201,
-          "cachedRequests": 1284330958,
-          "requests": 1301878923
-        }
-      },
-      {
-        "dimensions": { "date": "2024-05-10" },
-        "sum": {
-          "bytes": 1881566302489,
-          "cachedBytes": 1803440443780,
-          "cachedRequests": 1278366717,
-          "requests": 1295266753
-        }
-      }
-    ];
+  try {
+    const prev_data = await fetchNetworkStatsData(prevDate, startDate);
+    const current_data = await fetchNetworkStatsData(startDate, endDate);
 
     let result = {
       bandwidth: { total: 0, dates: {}, prev: { total: 0 } },
       hits: { total: 0, dates: {}, hitrates: 0, prev: { total: 0 } },
+
     };
 
     let totalPrevRequests = 0;
@@ -341,59 +301,17 @@ router.get('/network', async (req, res) => {
       result.hits.hitrates = Math.round(10000 * totalCachedRequests / result.hits.total) / 100;
     }
 
-    res.json({ success: true, data: result });
+    const respData = { success: true, data: result }
+    await SaveContentToRedis(req.originalUrl, JSON.stringify(respData), CONST.EXPIRE_DAY);
+    res.json(respData);
 
-  } else {
-    try {
-      const prev_data = await fetchNetworkStatsData(prevDate, startDate);
-      const current_data = await fetchNetworkStatsData(startDate, endDate);
-
-      let result = {
-        bandwidth: { total: 0, dates: {}, prev: { total: 0 } },
-        hits: { total: 0, dates: {}, hitrates: 0, prev: { total: 0 } },
-
-      };
-
-      let totalPrevRequests = 0;
-      let totalPrevBandwidth = 0
-      let totalCachedRequests = 0;
-
-      prev_data.forEach(data => {
-        totalPrevRequests += data.sum.requests;
-        totalPrevBandwidth += data.sum.bytes;
-      })
-
-      result.hits.prev.total = totalPrevRequests;
-      result.bandwidth.prev.total = totalPrevBandwidth;
-
-      current_data.forEach(data => {
-        let date = data.dimensions.date;
-        result.hits.dates[date] = data.sum.requests;
-        result.hits.total += data.sum.requests;
-        result.bandwidth.dates[date] = data.sum.bytes;
-        result.bandwidth.total += data.sum.bytes;
-        totalCachedRequests += data.sum.cachedRequests;
-      });
-
-      if (result.hits.total == 0) {
-        result.hitrates = 0
-      } else {
-        result.hits.hitrates = Math.round(10000 * totalCachedRequests / result.hits.total) / 100;
-      }
-
-      const respData = { success: true, data: result }
-      await SaveContentToRedis(req.originalUrl, JSON.stringify(respData), CONST.EXPIRE_DAY);
-      res.json(respData);
-
-    } catch (error) {
-      res.json({ success: false, error: error });
-    }
+  } catch (error) {
+    res.json({ success: false, error: error });
   }
 })
 
 
 ///////////// Country stats
-
 router.get('/network/countries', async (req, res) => {
 
   /// if already exist in cache, send it
@@ -408,29 +326,8 @@ router.get('/network/countries', async (req, res) => {
 
   const { startDate, endDate } = GetStartEndDatesFromPeriod(period);
 
-  if (process.env.NODE_ENV == 'development') {
-
-    let data = [
-      {
-        "sum": {
-          "bytes": 56800403163083,
-          "countryMap": [
-            {
-              "bytes": 2937890468,
-              "clientCountryName": "AD",
-              "requests": 3701796
-            },
-            {
-              "bytes": 62531856589,
-              "clientCountryName": "AE",
-              "requests": 62565196
-            }
-          ],
-          "requests": 38615714463
-        }
-      }
-    ];
-
+  try {
+    const data = await fetchCountryStatsData(startDate, endDate);
     if (data.length == 1 && data[0] !== {}) {
       let result = {
         hits: { total: 0, countries: [] },
@@ -453,35 +350,8 @@ router.get('/network/countries', async (req, res) => {
     } else {
       res.send({ success: false, message: "not found" });
     }
-
-  } else {
-    try {
-      const data = await fetchCountryStatsData(startDate, endDate);
-      if (data.length == 1 && data[0] !== {}) {
-        let result = {
-          hits: { total: 0, countries: [] },
-          bandwidth: { total: 0, countries: [] }
-        };
-
-        /// hits
-        result.hits.total = data[0].sum.requests;
-        data[0].sum.countryMap.forEach(country => {
-          result.hits.countries.push({ code: country.clientCountryName, total: country.requests });
-        });
-
-        /// bandwidth
-        result.bandwidth.total = data[0].sum.bytes;
-        data[0].sum.countryMap.forEach(country => {
-          result.bandwidth.countries.push({ code: country.clientCountryName, total: country.bytes });
-        })
-
-        res.json({ success: true, data: result });
-      } else {
-        res.send({ success: false, message: "not found" });
-      }
-    } catch (error) {
-      res.json({ success: false, error: error });
-    }
+  } catch (error) {
+    res.json({ success: false, error: error });
   }
 })
 

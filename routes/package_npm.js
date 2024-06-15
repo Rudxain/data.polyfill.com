@@ -3,7 +3,6 @@ var router = express.Router();
 import algoliasearch from 'algoliasearch';
 import request from '../utils/request.js';
 import { GetContentFromRedis, SaveContentToRedis } from '../db/redis.js';
-import overview_data from '../fake/algolia_npm_overview.json' assert { type: 'json' };
 import * as CONST from '../utils/const.js';
 
 import dotenv from 'dotenv';
@@ -34,63 +33,42 @@ router.get('/*/overview', async (req, res) => {
 
     console.log('fetching npm package overview for', project);
 
-    // algolia search
-    if (process.env.NODE_ENV == 'development') {
-        console.log("development");
-        response = {
-            ...response,
-            name: overview_data.name,
-            author: overview_data.author,
-            avatar: overview_data.avatar,
-            version: overview_data.version,
-            description: overview_data.description,
-            popular: overview_data.popular,
-            moduleTypes: overview_data.moduleTypes,
-            styleTypes: overview_data.styleTypes,
-            license: overview_data.license,
-            github_url: overview_data.github_url,
-            keywords: overview_data.keywords,
-            homepage: overview_data.homepage,
-            downloads: overview_data.downloads,
+    try {
+        const index = client.initIndex('npm-search');
+
+        const searchOptions = {
+            hitsPerPage: 1,
+            page: 0,
+            attributesToRetrieve: ["deprecated", "description", "githubRepo", "homepage", "keywords", "license", "name", "owner", "version", "popular", "moduleTypes", "styleTypes", "jsDelivrHits", "downloadsLast30Days"]
         };
-    } else {
-        try {
-            const index = client.initIndex('npm-search');
 
-            const searchOptions = {
-                hitsPerPage: 1,
-                page: 0,
-                attributesToRetrieve: ["deprecated", "description", "githubRepo", "homepage", "keywords", "license", "name", "owner", "version", "popular", "moduleTypes", "styleTypes", "jsDelivrHits", "downloadsLast30Days"]
-            };
-
-            const { hits } = await index.search(project, searchOptions);
-            if (hits.length > 0) {
-                const item = hits[0];
-                response = {
-                    ...response,
-                    name: item.name,
-                    author: item.owner.name,
-                    avatar: item.owner.avatar,
-                    version: item.version,
-                    description: item.description,
-                    popular: item.popular,
-                    moduleTypes: item.moduleTypes,
-                    styleTypes: item.styleTypes,
-                    license: item.license,
-                    github_url: item.owner.link,
-                    homepage: item.homepage,
-                    downloads: item.jsDelivrHits,
-                    keywords: item.keywords,
-                }
-
-            } else {
-                res.json({ status: 404, success: false, data: [] })
-                return;
+        const { hits } = await index.search(project, searchOptions);
+        if (hits.length > 0) {
+            const item = hits[0];
+            response = {
+                ...response,
+                name: item.name,
+                author: item.owner.name,
+                avatar: item.owner.avatar,
+                version: item.version,
+                description: item.description,
+                popular: item.popular,
+                moduleTypes: item.moduleTypes,
+                styleTypes: item.styleTypes,
+                license: item.license,
+                github_url: item.owner.link,
+                homepage: item.homepage,
+                downloads: item.jsDelivrHits,
+                keywords: item.keywords,
             }
-        } catch (error) {
-            res.send({ status: 400, success: false, error: error.message });
+
+        } else {
+            res.json({ status: 404, success: false, data: [] })
             return;
         }
+    } catch (error) {
+        res.send({ status: 400, success: false, error: error.message });
+        return;
     }
 
     const respData = { status: 200, success: true, data: response };
@@ -118,12 +96,9 @@ router.get('/*/entrypoints', async (req, res) => {
     version = paramsplit[paramsplit.length - 1];
     pkg = params.replace(`@${version}`, "");
 
-    /// get redis
 
     /// fetch
-
     const url = `https://data.jsdelivr.com/v1/packages/npm/${pkg}@${version}/entrypoints`;
-
     try {
         const { data } = await request.get(url);
         const respData = { success: true, data: data };
