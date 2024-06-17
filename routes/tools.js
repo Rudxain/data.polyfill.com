@@ -1,6 +1,8 @@
 import express from 'express';
 var router = express.Router();
 
+import request from '../utils/request.js';
+
 import { google_hostes_libraries } from '../utils/google-hosted-libraries.js';
 
 import dotenv from 'dotenv';
@@ -76,7 +78,7 @@ router.get('/unpkg', async (req, res) => {
     /// split
 
     let splitted = srcUrl.split('/');
-    
+
     /// check url again
     if (splitted.length < 2) {
         res.send({ success: false });
@@ -113,7 +115,7 @@ router.get('/google', async (req, res) => {
     /// split
 
     let splitted = srcUrl.split('/');
-    
+
     /// check url again
     if (splitted.length < 2) {
         res.send({ success: false });
@@ -131,8 +133,8 @@ router.get('/google', async (req, res) => {
         return;
     }
 
-    const googleHostedObj = google_hostes_libraries.find(lib=>lib.name===pkg);
-    const isEntryValid = googleHostedObj.entrypoints.some(entry=>entry.google === file);
+    const googleHostedObj = google_hostes_libraries.find(lib => lib.name === pkg);
+    const isEntryValid = googleHostedObj.entrypoints.some(entry => entry.google === file);
     if (isEntryValid === false) {
         res.send({ success: false });
         return;
@@ -207,6 +209,32 @@ router.get('/esmsh', async (req, res) => {
 
     const respData = { success: true, url: cdnUrl };
     res.send(respData);
+})
+
+router.post('/purge', async function (req, res) {
+
+    if (req.body.urls == undefined || req.body.urls == '') {
+        res.send({ success: false, error: 'Bad Request' });
+        return;
+    }
+
+    const urls = req.body.urls;
+    try {
+        const { data } = await request({
+            url: `${process.env.CDN_BASE_URL}/purge`,
+            data: {
+                urls: urls
+            },
+            method: 'post'
+        })
+        
+        console.log(data);
+
+        res.send({ success: true, data: data });
+    } catch (error) {
+        console.log(error);
+        res.send({ success: false })
+    }
 })
 
 export default router;

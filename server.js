@@ -37,6 +37,8 @@ app.use(bodyParser.urlencoded({ extended: false }));
 // disable x-powered-by
 app.disable('x-powered-by');
 
+app.use(express.json());
+
 //user-agent
 app.use(useragent.express());
 
