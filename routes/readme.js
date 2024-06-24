@@ -1,7 +1,6 @@
 import express from 'express';
 var router = express.Router();
 import request from '../utils/request.js';
-import fs from 'fs';
 import * as CONST from '../utils/const.js';
 
 import dotenv from 'dotenv';

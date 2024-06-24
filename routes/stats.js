@@ -328,7 +328,7 @@ router.get('/network/countries', async (req, res) => {
 
   try {
     const data = await fetchCountryStatsData(startDate, endDate);
-    if (data.length == 1 && data[0] !== {}) {
+    if (data.length == 1) {
       let result = {
         hits: { total: 0, countries: [] },
         bandwidth: { total: 0, countries: [] }
@@ -354,5 +354,57 @@ router.get('/network/countries', async (req, res) => {
     res.json({ success: false, error: error });
   }
 })
+
+
+//// oss cdn stats
+router.get('/proxies/:oss_cdn', async (req, res) => {
+  const originUrl = req.originalUrl;
+  console.log(originUrl);
+
+  /// if already exist in cache, send it
+  const cacheData = await GetContentFromRedis(originUrl);
+  if (cacheData != null) {
+    console.log('loading from redis', originUrl);
+    res.send(cacheData);
+    return;
+  }
+
+  const url = `https://data.jsdelivr.com/v1${originUrl}`;
+
+  try {
+    const { data } = await request.get(url);
+    const respData = { success: true, hits: data.hits, bandwidth: data.bandwidth }
+    await SaveContentToRedis(req.originalUrl, JSON.stringify(respData), CONST.EXPIRE_DAY);
+    res.send(respData);
+  } catch (error) {
+    console.log(error);
+    res.send({ success: false });
+  }
+});
+
+router.get('/proxies/:oss_cdn/files', async (req, res) => {
+  const originUrl = req.originalUrl;
+  console.log(originUrl);
+
+  /// if already exist in cache, send it
+  const cacheData = await GetContentFromRedis(originUrl);
+  if (cacheData != null) {
+    console.log('loading from redis', originUrl);
+    res.send(cacheData);
+    return;
+  }
+
+  const url = `https://data.jsdelivr.com/v1${originUrl}`;
+
+  try {
+    const { data } = await request.get(url);
+    const respData = { success: true, data: data }
+    await SaveContentToRedis(req.originalUrl, JSON.stringify(respData), CONST.EXPIRE_DAY);
+    res.send(respData);
+  } catch (error) {
+    console.log(error);
+    res.send({ success: false });
+  }
+});
 
 export default router;
