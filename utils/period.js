@@ -20,7 +20,7 @@ export function GeneratePeriodArray(startYear, startMonth, endYear, endMonth) {
         }
     }
 
-    return result;
+    return result.reverse();
 }
 
 export const GetPrevStartEndDatesFromPeriod = (period) => {
