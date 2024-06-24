@@ -14,36 +14,15 @@ if (process.env.NODE_ENV !== 'production') {
 
 import { GetContentFromRedis, SaveContentToRedis } from '../db/redis.js';
 import * as CONST from '../utils/const.js';
-import { GetPrevStartEndDatesFromPeriod, GetStartEndDatesFromPeriod } from '../utils/period.js';
+import {GeneratePeriodArray, GetPrevStartEndDatesFromPeriod, GetStartEndDatesFromPeriod } from '../utils/period.js';
 
 
 /// stats period
 router.get('/periods', async (req, res) => {
-  /// if already exist in cache, send it
-  const cacheData = await GetContentFromRedis(req.originalUrl);
-  if (cacheData != null) {
-    console.log('loading from redis', req.originalUrl);
-    res.send(cacheData);
-    return;
-  }
-
-  // fetch
-  const url = `https://data.jsdelivr.com/v1/stats/periods`;
-
-  try {
-    const { data } = await request.get(url);
-    const periodList = data.map(item => {
-      return { period: item.period, periodType: item.periodType };
-    });
-    const respData = { success: true, data: periodList };
-    await SaveContentToRedis(req.originalUrl, JSON.stringify(respData), CONST.EXPIRE_MONTH)
-    res.send(respData);
-    // save to redis
-
-  } catch (error) {
-    console.log(error);
-    res.send({ success: false });
-  }
+  const date = new Date();
+  const periodList = GeneratePeriodArray(2024, 1, date.getFullYear(), date.getMonth());
+  const respData = { success: true, data: periodList };
+  res.send(respData);
 })
 
 router.get('/npm/*', async (req, res) => {

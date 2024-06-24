@@ -9,14 +9,14 @@ export function GeneratePeriodArray(startYear, startMonth, endYear, endMonth) {
 
     for (let year = startYear; year <= endYear; year++) {
         for (let month = (year === startYear ? startMonth : 1); month <= (year === endYear ? endMonth : 12); month++) {
-            result.push(`${year}-${pad(month)}`);
+            result.push({period: `${year}-${pad(month)}`, periodType: "s-month"});
             if (month % 3 === 0) {
-                result.push(`${year}-Q${month / 3}`);
+                result.push({period: `${year}-Q${month / 3}`, periodType: "s-quarter"});
             }
         }
 
         if (year !== endYear || endMonth === 12) {
-            result.push(`${year}`);
+            result.push({period: `${year}`, periodType: "s-year"});
         }
     }
 
