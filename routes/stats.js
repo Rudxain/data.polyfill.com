@@ -337,18 +337,18 @@ router.get('/network/countries', async (req, res) => {
 
 //// oss cdn stats
 router.get('/proxies/:oss_cdn', async (req, res) => {
-  const originUrl = req.originalUrl;
-  console.log(originUrl);
 
   /// if already exist in cache, send it
-  const cacheData = await GetContentFromRedis(originUrl);
+  const cacheData = await GetContentFromRedis(req.originalUrl);
   if (cacheData != null) {
-    console.log('loading from redis', originUrl);
+    console.log('loading from redis', req.originalUrl);
     res.send(cacheData);
     return;
   }
 
-  const url = `https://data.jsdelivr.com/v1${originUrl}`;
+  const oss_cdn = req.params.oss_cdn;
+  let period = req.query.period || "month";
+  const url = `https://data.jsdelivr.com/v1/stats/proxies/${oss_cdn}?period=${period}`;
 
   try {
     const { data } = await request.get(url);
@@ -373,11 +373,16 @@ router.get('/proxies/:oss_cdn/files', async (req, res) => {
     return;
   }
 
-  const url = `https://data.jsdelivr.com/v1${originUrl}`;
+  const oss_cdn = req.params.oss_cdn;
+  let page = req.query.page || 1;
+  let limit = req.query.limit || 100;
+  let sortBy = req.query.by || "hits";
+
+  const url = `https://data.jsdelivr.com/v1/stats/proxies/${oss_cdn}?page=${page}&limit=${limit}&by=${sortBy}`;
 
   try {
     const { data } = await request.get(url);
-    const respData = { success: true, data: data }
+    const respData = { success: true, data: {hits: data.hits, bandwidth: data.bandwidth} }
     await SaveContentToRedis(req.originalUrl, JSON.stringify(respData), CONST.EXPIRE_DAY);
     res.send(respData);
   } catch (error) {
